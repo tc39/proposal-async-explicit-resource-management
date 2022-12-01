@@ -1,9 +1,9 @@
 {
-  "name": "proposal-explicit-resource-management",
+  "name": "proposal-async-explicit-resource-management",
   "version": "0.0.0",
   "private": true,
-  "description": "ECMAScript explicit resource management",
-  "homepage": "https://github.com/tc39/proposal-explicit-resource-management#readme",
+  "description": "ECMAScript async explicit resource management",
+  "homepage": "https://github.com/tc39/proposal-async-explicit-resource-management#readme",
   "author": {
     "name": "Ron Buckton",
     "email": "ron.buckton@microsoft.com"
@@ -26,5 +26,5 @@
     "gulp-live-server": "0.0.31",
     "gulp-rename": "^2.0.0"
   },
-  "repository": "tc39/proposal-explicit-resource-management"
+  "repository": "tc39/proposal-async-explicit-resource-management"
 }
