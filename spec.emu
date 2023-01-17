@@ -37,7 +37,8 @@ contributors: Ron Buckton, Ecma International
 <emu-intro id="intro">
   <h1>Introduction</h1>
   <p>This proposal introduces syntax and semantics around explicit resource management.</p>
-  <p>See <a href="https://github.com/tc39/proposal-explicit-resource-management">the proposal repository</a> for background material and discussion.</p>
+  <p>See <a href="https://github.com/tc39/proposal-async-explicit-resource-management">the proposal repository</a> for background material and discussion.</p>
+  <p>This document includes specification text also proposed in <a href="https://github.com/tc39/proposal-explicit-resource-management">Explicit Resource Management</a> to provide a comprehensive, holistic specification.</p>
 </emu-intro>
 
 <emu-clause id="sec-ecmascript-data-types-and-values" aoid="Type">
@@ -70,7 +71,7 @@ contributors: Ron Buckton, Ecma International
                 <ins>`"Symbol.asyncDispose"`</ins>
               </td>
               <td>
-                <ins>A method that performs explicit resource cleanup on an object. Called by the semantics of AsyncDisposableStack objects.</ins>
+                <ins>A method that performs explicit resource cleanup on an object. Called by the semantics of the `using await` declaration and AsyncDisposableStack objects.</ins>
               </td>
             </tr>
             <tr>
@@ -867,6 +868,7 @@ contributors: Ron Buckton, Ecma International
       </emu-clause>
     </emu-clause>
   </emu-clause>
+
   <emu-clause id="sec-ecmascript-specification-types">
     <h1>ECMAScript Specification Types</h1>
     <emu-clause id="sec-reference-record-specification-type" oldids="sec-reference-specification-type">
@@ -877,7 +879,7 @@ contributors: Ron Buckton, Ecma International
           InitializeReferencedBinding (
             _V_: unknown,
             _W_: unknown,
-            <ins>_hint_: either ~normal~ or ~sync-dispose~,</ins>
+            <ins>_hint_: either ~normal~, ~sync-dispose~, or ~async-dispose~,</ins>
           ): either a normal completion containing ~unused~ or an abrupt completion
         </h1>
         <dl class="header">
@@ -941,7 +943,7 @@ contributors: Ron Buckton, Ecma International
               ~sync-dispose~ or ~async-dispose~.
             </td>
             <td>
-              Indicates whether the resources was added by a `using` declaration or DisposableStack object (~sync-dispose~) or an AsyncDisposableStack object (~async-dispose~).
+              Indicates whether the resource was added by a `using` declaration or DisposableStack object (~sync-dispose~) or a `using await` declaration or AsyncDisposableStack object (~async-dispose~).
             </td>
           </tr>
           <tr>
@@ -949,7 +951,7 @@ contributors: Ron Buckton, Ecma International
               [[DisposeMethod]]
             </td>
             <td>
-              A function object.
+              A function object or *undefined*.
             </td>
             <td>
               A function object that will be called with [[ResourceValue]] as its *this* value when the resource disposed.
@@ -973,8 +975,8 @@ contributors: Ron Buckton, Ecma International
       </dl>
       <emu-alg>
         1. If _method_ is not present then,
-          1. If _V_ is *null* or *undefined*, return NormalCompletion(~empty~).
-          1. If Type(_V_) is not Object, throw a *TypeError* exception.
+          1. If _V_ is *null* or *undefined* and _hint_ is ~sync-dispose~, then
+            1. Return NormalCompletion(~empty~).
           1. Let _resource_ be ? CreateDisposableResource(_V_, _hint_).
         1. Else,
           1. If _V_ is *null* or *undefined*, then
@@ -990,7 +992,7 @@ contributors: Ron Buckton, Ecma International
     <emu-clause id="sec-createdisposableresource" type="abstract operation">
       <h1>
         CreateDisposableResource (
-          _V_ : an Object or *undefined*,
+          _V_ : an ECMAScript language value,
           _hint_ : either ~sync-dispose~ or ~async-dispose~,
           optional _method_ : a function object,
         )
@@ -998,9 +1000,13 @@ contributors: Ron Buckton, Ecma International
       <dl class="header"></dl>
       <emu-alg>
         1. If _method_ is not present, then
-          1. If _V_ is *undefined*, throw a *TypeError* exception.
-          1. Set _method_ to ? GetDisposeMethod(_V_, _hint_).
-          1. If _method_ is *undefined*, throw a *TypeError* exception.
+          1. If _V_ is *null* or *undefined*, then
+            1. Set _V_ to *undefined*.
+            1. Set _method_ to *undefined*.
+          1. Else,
+            1. If Type(_V_) is not Object, throw a *TypeError* exception.
+            1. Set _method_ to ? GetDisposeMethod(_V_, _hint_).
+            1. If _method_ is *undefined*, throw a *TypeError* exception.
         1. Else,
           1. If IsCallable(_method_) is *false*, throw a *TypeError* exception.
         1. Return the DisposableResource Record { [[ResourceValue]]: _V_, [[Hint]]: _hint_, [[DisposeMethod]]: _method_ }.
@@ -1031,13 +1037,14 @@ contributors: Ron Buckton, Ecma International
         Dispose (
           _V_ : an Object or *undefined*,
           _hint_ : either ~sync-dispose~ or ~async-dispose~,
-          _method_ : a function object,
+          _method_ : a function object or *undefined*,
         )
       </h1>
       <dl class="header"></dl>
       <emu-alg>
-        1. Let _result_ be ? Call(_method_, _V_).
-        1. If _hint_ is ~async-dispose~ and _result_ is not *undefined*, then
+        1. If _method_ is *undefined*, let _result_ be *undefined*.
+        1. Else, let _result_ be ? Call(_method_, _V_).
+        1. If _hint_ is ~async-dispose~, then
           1. Perform ? Await(_result_).
         1. Return *undefined*.
       </emu-alg>
@@ -1060,8 +1067,8 @@ contributors: Ron Buckton, Ecma International
                 1. Set _result_ to _result_.[[Value]].
                 1. Let _suppressed_ be _completion_.[[Value]].
                 1. Let _error_ be a newly created *SuppressedError* object.
-                1. Perform ! DefinePropertyOrThrow(_error_, *"error"*, PropertyDescriptor { [[Configurable]]: *true*, [[Enumerable]]: *false*, [[Writable]]: *true*, [[Value]]: _result_ }).
-                1. Perform ! DefinePropertyOrThrow(_error_, *"suppressed"*, PropertyDescriptor { [[Configurable]]: *true*, [[Enumerable]]: *false*, [[Writable]]: *true*, [[Value]]: _suppressed_ }).
+                1. Perform ! CreateNonEnumerableDataPropertyOrThrow(_error_, *"error"*, _result_).
+                1. Perform ! CreateNonEnumerableDataPropertyOrThrow(_error_, *"suppressed"*, _suppressed_).
                 1. Set _completion_ to ThrowCompletion(_error_).
               1. Else,
                 1. Set _completion_ to _result_.
@@ -1104,6 +1111,7 @@ contributors: Ron Buckton, Ecma International
       <emu-grammar>
         UsingDeclaration :
           `using` BindingList `;`
+          `using await` BindingList `;`
       </emu-grammar>
       <emu-alg>
         1. Return the BoundNames of |BindingList|.
@@ -1400,6 +1408,134 @@ contributors: Ron Buckton, Ecma International
         <p>It is not necessary to treat `export default` |AssignmentExpression| as a constant declaration because there is no syntax that permits assignment to the internal bound name used to reference a module's default object.</p>
       </emu-note>
     </emu-clause>
+
+    <ins class="block">
+    <emu-clause id="sec-static-semantics-isusingdeclaration" type="sdo">
+      <h1>Static Semantics: IsUsingDeclaration ( ): a Boolean</h1>
+      <dl class="header">
+      </dl>
+      <emu-grammar>LexicalDeclaration : LetOrConst BindingList `;`</emu-grammar>
+      <emu-alg>
+        1. Return *false*.
+      </emu-alg>
+      <emu-grammar>LexicalDeclaration : UsingDeclaration</emu-grammar>
+      <emu-alg>
+        1. Return *true*.
+      </emu-alg>
+      <emu-grammar>ForDeclaration : LetOrConst ForBinding</emu-grammar>
+      <emu-alg>
+        1. Return *false*.
+      </emu-alg>
+      <emu-grammar>
+        ForDeclaration :
+          `using` ForBinding
+          `using` `await` ForBinding
+      </emu-grammar>
+      <emu-alg>
+        1. Return *true*.
+      </emu-alg>
+      <emu-grammar>
+        FunctionDeclaration :
+          `function` BindingIdentifier `(` FormalParameters `)` `{` FunctionBody `}`
+          `function` `(` FormalParameters `)` `{` FunctionBody `}`
+
+        GeneratorDeclaration :
+          `function` `*` BindingIdentifier `(` FormalParameters `)` `{` GeneratorBody `}`
+          `function` `*` `(` FormalParameters `)` `{` GeneratorBody `}`
+
+        AsyncGeneratorDeclaration :
+          `async` `function` `*` BindingIdentifier `(` FormalParameters `)` `{` AsyncGeneratorBody `}`
+          `async` `function` `*` `(` FormalParameters `)` `{` AsyncGeneratorBody `}`
+
+        AsyncFunctionDeclaration :
+          `async` `function` BindingIdentifier `(` FormalParameters `)` `{` AsyncFunctionBody `}`
+          `async` `function` `(` FormalParameters `)` `{` AsyncFunctionBody `}`
+      </emu-grammar>
+      <emu-alg>
+        1. Return *false*.
+      </emu-alg>
+      <emu-grammar>
+        ClassDeclaration :
+          `class` BindingIdentifier ClassTail
+          `class` ClassTail
+      </emu-grammar>
+      <emu-alg>
+        1. Return *false*.
+      </emu-alg>
+      <emu-grammar>
+        ExportDeclaration :
+          `export` ExportFromClause FromClause `;`
+          `export` NamedExports `;`
+          `export` `default` AssignmentExpression `;`
+      </emu-grammar>
+      <emu-alg>
+        1. Return *false*.
+      </emu-alg>
+    </emu-clause>
+
+    <emu-clause id="sec-static-semantics-isusingawaitdeclaration" type="sdo">
+      <h1>Static Semantics: IsUsingAwaitDeclaration ( ): a Boolean</h1>
+      <dl class="header">
+      </dl>
+      <emu-grammar>LexicalDeclaration : LetOrConst BindingList `;`</emu-grammar>
+      <emu-alg>
+        1. Return *false*.
+      </emu-alg>
+      <emu-grammar>UsingDeclaration : `using` BindingList `;`</emu-grammar>
+      <emu-alg>
+        1. Return *false*.
+      </emu-alg>
+      <emu-grammar>UsingDeclaration : `using` `await` BindingList `;`</emu-grammar>
+      <emu-alg>
+        1. Return *true*.
+      </emu-alg>
+      <emu-grammar>ForDeclaration : `using` ForBinding</emu-grammar>
+      <emu-alg>
+        1. Return *false*.
+      </emu-alg>
+      <emu-grammar>ForDeclaration : `using` `await` ForBinding</emu-grammar>
+      <emu-alg>
+        1. Return *true*.
+      </emu-alg>
+      <emu-grammar>
+        FunctionDeclaration :
+          `function` BindingIdentifier `(` FormalParameters `)` `{` FunctionBody `}`
+          `function` `(` FormalParameters `)` `{` FunctionBody `}`
+
+        GeneratorDeclaration :
+          `function` `*` BindingIdentifier `(` FormalParameters `)` `{` GeneratorBody `}`
+          `function` `*` `(` FormalParameters `)` `{` GeneratorBody `}`
+
+        AsyncGeneratorDeclaration :
+          `async` `function` `*` BindingIdentifier `(` FormalParameters `)` `{` AsyncGeneratorBody `}`
+          `async` `function` `*` `(` FormalParameters `)` `{` AsyncGeneratorBody `}`
+
+        AsyncFunctionDeclaration :
+          `async` `function` BindingIdentifier `(` FormalParameters `)` `{` AsyncFunctionBody `}`
+          `async` `function` `(` FormalParameters `)` `{` AsyncFunctionBody `}`
+      </emu-grammar>
+      <emu-alg>
+        1. Return *false*.
+      </emu-alg>
+      <emu-grammar>
+        ClassDeclaration :
+          `class` BindingIdentifier ClassTail
+          `class` ClassTail
+      </emu-grammar>
+      <emu-alg>
+        1. Return *false*.
+      </emu-alg>
+      <emu-grammar>
+        ExportDeclaration :
+          `export` ExportFromClause FromClause `;`
+          `export` NamedExports `;`
+          `export` `default` AssignmentExpression `;`
+      </emu-grammar>
+      <emu-alg>
+        1. Return *false*.
+      </emu-alg>
+    </emu-clause>
+    </ins>
   </emu-clause>
 
   <emu-clause id="sec-syntax-directed-operations-miscellaneous">
@@ -1636,7 +1772,7 @@ contributors: Ron Buckton, Ecma International
               InitializeBinding(N, V<ins>, _hint_</ins>)
             </td>
             <td>
-              Set the value of an already existing but uninitialized binding in an Environment Record. The String value _N_ is the text of the bound name. _V_ is the value for the binding and is a value of any ECMAScript language type. <ins>_hint_ indicates whether the binding came from either a `using` declaration (~sync-dispose~) or a regular variable declaration (~normal~).</ins>
+              Set the value of an already existing but uninitialized binding in an Environment Record. The String value _N_ is the text of the bound name. _V_ is the value for the binding and is a value of any ECMAScript language type. <ins>_hint_ indicates whether the binding came from either a `using` declaration (~sync-dispose~), a `using await` declaration (~async-dispose~), or a regular variable declaration (~normal~).</ins>
             </td>
           </tr>
           <tr>
@@ -1694,7 +1830,7 @@ contributors: Ron Buckton, Ecma International
       <emu-clause id="sec-declarative-environment-records">
         <h1>Declarative Environment Records</h1>
         <p>Each <dfn>declarative Environment Record</dfn> is associated with an ECMAScript program scope containing variable, constant, let, class, module, import, and/or function declarations. A declarative Environment Record binds the set of identifiers defined by the declarations contained within its scope.</p>
-        <p><ins>Every declarative Environment Record also has a [[DisposableResourceStack]] field, which is a List of DisposableResource Records. This list is a stack of resources tracked by the `using` declarations that must be disposed when the Evaluation step that constructed the Environment Record has completed.</ins></p>
+        <p><ins>Every declarative Environment Record also has a [[DisposableResourceStack]] field, which is a List of DisposableResource Records. This list is a stack of resources tracked by the `using` declarations and `using await` declarations that must be disposed when the Evaluation step that constructed the Environment Record has completed.</ins></p>
         <p>The behaviour of the concrete specification methods for declarative Environment Records is defined by the following algorithms.</p>
 
         <emu-clause id="sec-declarative-environment-records-initializebinding-n-v" type="concrete method">
@@ -1702,7 +1838,7 @@ contributors: Ron Buckton, Ecma International
             InitializeBinding (
               _N_: a String,
               _V_: an ECMAScript language value,
-              <ins>_hint_: either ~normal~ or ~sync-dispose~,</ins>
+              <ins>_hint_: either ~normal~, ~sync-dispose~, or ~async-dispose~,</ins>
             ): a normal completion containing ~unused~
           </h1>
           <dl class="header">
@@ -1730,7 +1866,7 @@ contributors: Ron Buckton, Ecma International
             InitializeBinding (
               _N_: a String,
               _V_: an ECMAScript language value,
-              <ins>_hint_: either ~normal~ or ~sync-dispose~,</ins>
+              <ins>_hint_: either ~normal~, ~sync-dispose~, or ~async-dispose~,</ins>
             ): either a normal completion containing ~unused~ or a throw completion
           </h1>
           <dl class="header">
@@ -1760,7 +1896,7 @@ contributors: Ron Buckton, Ecma International
             InitializeBinding (
               _N_: a String,
               _V_: an ECMAScript language value,
-              <ins>_hint_: either ~normal~ or ~sync-dispose~,</ins>
+              <ins>_hint_: either ~normal~, ~sync-dispose~, or ~async-dispose~,</ins>
             ): either a normal completion containing ~unused~ or a throw completion
           </h1>
           <dl class="header">
@@ -1983,6 +2119,7 @@ contributors: Ron Buckton, Ecma International
             1. Let _fn_ be the sole element of the BoundNames of _d_.
             1. Let _fo_ be InstantiateFunctionObject of _d_ with arguments _env_ and _privateEnv_.
             1. [id="step-blockdeclarationinstantiation-initializebinding"] Perform _env_.InitializeBinding(_fn_, _fo_<ins>, ~normal~</ins>). NOTE: This step is replaced in section <emu-xref href="#sec-web-compat-blockdeclarationinstantiation"></emu-xref>.
+        1. <ins>Return _hint_.</ins>
       </emu-alg>
     </emu-clause>
   </emu-clause>
@@ -2003,7 +2140,8 @@ contributors: Ron Buckton, Ecma International
 
         <ins>
         UsingDeclaration[In, Yield, Await] :
-          `using` [no LineTerminator here] BindingList[?In, ?Yield, ?Await, +Using] `;`
+          `using` [no LineTerminator here] [lookahead != `await`] BindingList[?In, ?Yield, ?Await, +Using] `;`
+          [+Await] `using` [no LineTerminator here] `await` [no LineTerminator here] BindingList[?In, ?Yield, +Await, +Using] `;`
         </ins>
 
         BindingList[In, Yield, Await, <ins>Using</ins>] :
@@ -2022,10 +2160,14 @@ contributors: Ron Buckton, Ecma International
         <emu-grammar>
           UsingDeclaration :
             `using` BindingList `;`
+            `using` `await` BindingList `;`
         </emu-grammar>
         <ul>
           <li>
             It is a Syntax Error if the BoundNames of |BindingList| contains *"let"*.
+          </li>
+          <li>
+            It is a Syntax Error if the BoundNames of |BindingList| contains *"await"*.
           </li>
           <li>
             It is a Syntax Error if the BoundNames of |BindingList| contains any duplicate entries.
@@ -2061,6 +2203,13 @@ contributors: Ron Buckton, Ecma International
         <emu-grammar>UsingDeclaration : `using` BindingList `;`</emu-grammar>
         <emu-alg>
           1. Let _next_ be BindingEvaluation of |BindingList| with parameter ~sync-dispose~.
+          1. ReturnIfAbrupt(_next_).
+          1. Return ~empty~.
+        </emu-alg>
+
+        <emu-grammar>UsingDeclaration : `using` `await` BindingList `;`</emu-grammar>
+        <emu-alg>
+          1. Let _next_ be BindingEvaluation of |BindingList| with parameter ~async-dispose~.
           1. ReturnIfAbrupt(_next_).
           1. Return ~empty~.
         </emu-alg>
@@ -2108,7 +2257,7 @@ contributors: Ron Buckton, Ecma International
       <emu-clause id="sec-let-and-const-declarations-runtime-semantics-bindingevaluation" type="sdo">
         <h1>
           Runtime Semantics: BindingEvaluation (
-            _hint_: either ~normal~ or ~sync-dispose~
+            _hint_: either ~normal~, ~sync-dispose~, or ~async-dispose~.
           ): either a normal completion containing ~unused~ or an abrupt completion
         </h1>
         <dl class="header">
@@ -2265,71 +2414,6 @@ contributors: Ron Buckton, Ecma International
         </emu-alg>
       </emu-clause>
 
-      <emu-clause id="sec-forbodyevaluation" type="abstract operation">
-        <h1>
-          ForBodyEvaluation (
-            _test_: unknown,
-            _increment_: unknown,
-            _stmt_: unknown,
-            _perIterationBindings_: unknown,
-            _labelSet_: unknown,
-          ): either a normal completion containing an ECMAScript language value or an abrupt completion
-        </h1>
-        <dl class="header">
-        </dl>
-        <emu-alg>
-          1. Let _V_ be *undefined*.
-          1. <del>Perform ? CreatePerIterationEnvironment(_perIterationBindings_).</del>
-          1. <ins>Let _thisIterationEnv_ be ? CreatePerIterationEnvironment(_perIterationBindings_).</ins>
-          1. Repeat,
-            1. If _test_ is not ~[empty]~, then
-              1. Let _testRef_ be the result of evaluating _test_.
-              1. <del>Let _testValue_ be ? GetValue(_testRef_).</del>
-              1. <ins>Let _testValue_ be Completion(GetValue(_testRef_)).</ins>
-              1. <ins>If _testValue_ is an abrupt completion, then</ins>
-                1. <ins>Return ? DisposeResources(_thisIterationEnv_, _testValue_).</ins>
-              1. <ins>Else,</ins>
-                1. <ins>Set _testValue_ to _testValue_.[[Value]].</ins>
-              1. <del>If ToBoolean(_testValue_) is *false*, return _V_.</del>
-              1. <ins>If ToBoolean(_testValue_) is *false*, return ? DisposeResources(_thisIterationEnv_, Completion(_V_)).</ins>
-            1. Let _result_ be the result of evaluating _stmt_.
-            1. <ins>Perform ? DisposeResources(_thisIterationEnv_, _result_).</ins>
-            1. If LoopContinues(_result_, _labelSet_) is *false*, return ? UpdateEmpty(_result_, _V_).
-            1. If _result_.[[Value]] is not ~empty~, set _V_ to _result_.[[Value]].
-            1. <del>Perform ? CreatePerIterationEnvironment(_perIterationBindings_).</del>
-            1. <ins>Set _thisIterationEnv_ to ? CreatePerIterationEnvironment(_perIterationBindings_).</ins>
-            1. If _increment_ is not ~[empty]~, then
-              1. Let _incRef_ be the result of evaluating _increment_.
-              1. <del>Perform ? GetValue(_incRef_).</del>
-              1. <ins>Let _incrResult_ be Completion(GetValue(_incrRef_)).</ins>
-              1. <ins>If _incrResult_ is an abrupt completion, then</ins>
-                1. <ins>Return ? DisposeResources(_thisIterationEnv_, _incrResult_).</ins>
-        </emu-alg>
-      </emu-clause>
-
-      <emu-clause id="sec-createperiterationenvironment" type="abstract operation">
-        <h1>
-          CreatePerIterationEnvironment (
-            _perIterationBindings_: unknown,
-          ): either a normal completion containing either a Declarative Environment Record or ~unused~ or a throw completion
-        </h1>
-        <dl class="header">
-        </dl>
-        <emu-alg>
-          1. If _perIterationBindings_ has any elements, then
-            1. Let _lastIterationEnv_ be the running execution context's LexicalEnvironment.
-            1. Let _outer_ be _lastIterationEnv_.[[OuterEnv]].
-            1. Assert: _outer_ is not *null*.
-            1. Let _thisIterationEnv_ be NewDeclarativeEnvironment(_outer_).
-            1. For each element _bn_ of _perIterationBindings_, do
-              1. Perform ! _thisIterationEnv_.CreateMutableBinding(_bn_, *false*).
-              1. Let _lastValue_ be ? _lastIterationEnv_.GetBindingValue(_bn_, *true*).
-              1. Perform _thisIterationEnv_.InitializeBinding(_bn_, _lastValue_<ins>, ~normal~</ins>).
-            1. Set the running execution context's LexicalEnvironment to _thisIterationEnv_.
-            1. <ins>Return _thisIterationEnv_.</ins>
-          1. Return ~unused~.
-        </emu-alg>
-      </emu-clause>
     </emu-clause>
 
     <emu-clause id="sec-for-in-and-for-of-statements">
@@ -2349,7 +2433,8 @@ contributors: Ron Buckton, Ecma International
 
         ForDeclaration[Yield, Await, <ins>Using</ins>] :
           LetOrConst ForBinding[?Yield, ?Await, <ins>~Using</ins>]
-          <ins>[+Using] `using` [no LineTerminator here] ForBinding[?Yield, ?Await, +Using]</ins>
+          <ins>[+Using] `using` [no LineTerminator here] [lookahead != `await`] ForBinding[?Yield, ?Await, +Using]</ins>
+          <ins>[+Using, +Await] `using` [no LineTerminator here] `await` [no LineTerminator here] ForBinding[?Yield, +Await, +Using]</ins>
 
         ForBinding[Yield, Await, <ins>Using</ins>] :
           BindingIdentifier[?Yield, ?Await]
@@ -2375,7 +2460,11 @@ contributors: Ron Buckton, Ecma International
               1. Perform ! _environment_.CreateMutableBinding(_name_, *false*).
         </emu-alg>
         <ins class="block">
-        <emu-grammar>ForDeclaration : `using` ForBinding</emu-grammar>
+        <emu-grammar>
+          ForDeclaration :
+            `using` ForBinding
+            `using` `await` ForBinding
+        </emu-grammar>
         <emu-alg>
           1. Assert: _environment_ is a declarative Environment Record.
           1. For each element _name_ of the BoundNames of |ForBinding|, do
@@ -2402,6 +2491,12 @@ contributors: Ron Buckton, Ecma International
           1. If _iteratorKind_ is not present, set _iteratorKind_ to ~sync~.
           1. Let _oldEnv_ be the running execution context's LexicalEnvironment.
           1. Let _V_ be *undefined*.
+          1. <ins>If IsUsingAwaitDeclaration of _lhs_ is *true*, then</ins>
+            1. <ins>Let _hint_ be ~async-dispose~.</ins>
+          1. <ins>Else, if IsUsingDeclaration of _lhs_ is *true*, then</ins>
+            1. <ins>Let _hint_ be ~sync-dispose~.</ins>
+          1. <ins>Else, </ins>
+            1. <ins>Let _hint_ be ~normal~.</ins>
           1. Let _destructuring_ be IsDestructuring of _lhs_.
           1. If _destructuring_ is *true* and if _lhsKind_ is ~assignment~, then
             1. Assert: _lhs_ is a |LeftHandSideExpression|.
@@ -2431,11 +2526,7 @@ contributors: Ron Buckton, Ecma International
               1. If _lhsRef_ is an abrupt completion, then
                 1. Let _status_ be _lhsRef_.
               1. Else if _lhsKind_ is ~lexicalBinding~, then
-                1. <del>Let _status_ be Completion(InitializeReferencedBinding(_lhsRef_, _nextValue_)).</del>
-                1. <ins>If IsUsingDeclaration of _lhs_ is *true*, then</ins>
-                  1. <ins>Let _status_ be Completion(InitializeReferencedBinding(_lhsRef_, _nextValue_, ~sync-dispose~)).</ins>
-                1. <ins>Else,</ins>
-                  1. <ins>Let _status_ be Completion(InitializeReferencedBinding(_lhsRef_, _nextValue_, ~normal~)).</ins>
+                1. Let _status_ be Completion(InitializeReferencedBinding(_lhsRef_, _nextValue_<ins>, _hint_</ins>)).
               1. Else,
                 1. Let _status_ be Completion(PutValue(_lhsRef_, _nextValue_)).
             1. Else,
@@ -2873,7 +2964,7 @@ contributors: Ron Buckton, Ecma International
       </emu-note>
       <ins class="block">
       <emu-note>
-        <p>A `using` declaration that precedes a call in the same |Block|, |CaseBlock|, |ForStatement|, |ForInOfStatement|, |FunctionBody|, |GeneratorBody|, |AsyncGeneratorBody|, |AsyncFunctionBody|, or |ClassStaticBlockBody| prevents that call from being a possible tail position call.</p>
+        <p>A `using` declaration or `using await` declaration that precedes a call in the same |Block|, |CaseBlock|, |ForStatement|, |ForInOfStatement|, |FunctionBody|, |GeneratorBody|, |AsyncGeneratorBody|, |AsyncFunctionBody|, or |ClassStaticBlockBody| prevents that call from being a possible tail position call.</p>
       </emu-note>
       </ins>
 
@@ -3411,8 +3502,8 @@ contributors: Ron Buckton, Ecma International
               1. Let _msg_ be ? ToString(_message_).
               1. Perform CreateNonEnumerableDataPropertyOrThrow(_O_, *"message"*, _msg_).
             1. Perform ? InstallErrorCause(_O_, _options_).
-            1. Perform ! DefinePropertyOrThrow(_O_, *"error"*, PropertyDescriptor { [[Configurable]]: *true*, [[Enumerable]]: *false*, [[Writable]]: *true*, [[Value]]: _error_ }).
-            1. Perform ! DefinePropertyOrThrow(_O_, *"suppressed"*, PropertyDescriptor { [[Configurable]]: *true*, [[Enumerable]]: *false*, [[Writable]]: *true*, [[Value]]: _suppressed_ }).
+            1. Perform ! CreateNonEnumerableDataPropertyOrThrow(_O_, *"error"*, _error_).
+            1. Perform ! CreateNonEnumerableDataPropertyOrThrow(_O_, *"suppressed"*, _suppressed_).
             1. Return _O_.
           </emu-alg>
         </emu-clause>
@@ -3595,6 +3686,7 @@ contributors: Ron Buckton, Ecma International
               <td>
                 <p>Invoking this method notifies the <em>AsyncDisposable</em> object that the caller does not intend to continue to use this object. This method should perform any necessary logic to perform explicit clean-up of the resource including, but not limited to, file system handles, streams, host objects, etc. When an exception is thrown from this method, it typically means that the resource could not be explicitly freed. An <em>AsyncDisposable</em> object is not considered "disposed" until the resulting Promise has been fulfilled.</p>
                 <p>If called more than once on the same object, the function should not throw an exception. However, this requirement is not enforced.</p>
+                <p>When using an <em>AsyncDisposable</em> object, it is good practice to create the instance with a `using await` declaration, as the resource will be automatically disposed when the |Block| or |Module| immediately containing the declaration has been evaluated.</p>
               </td>
             </tr>
             </tbody>
@@ -3687,13 +3779,7 @@ contributors: Ron Buckton, Ecma International
           1. Let _disposableStack_ be the *this* value.
           1. Perform ? RequireInternalSlot(_disposableStack_, [[DisposableState]]).
           1. If _disposableStack_.[[DisposableState]] is ~disposed~, throw a *ReferenceError* exception.
-          1. If _value_ is neither *null* nor *undefined*, then
-            1. If Type(_value_) is not Object, throw a *TypeError* exception.
-            1. Let _method_ be GetDisposeMethod(_value_, ~sync-dispose~).
-            1. If _method_ is *undefined*, then
-                1. Throw a *TypeError* exception.
-            1. Else,
-              1. Perform ? AddDisposableResource(_disposableStack_, _value_, ~sync-dispose~, _method_).
+          1. Perform ? AddDisposableResource(_disposableStack_, _value_, ~sync-dispose~).
           1. Return _value_.
         </emu-alg>
       </emu-clause>
@@ -3893,13 +3979,7 @@ contributors: Ron Buckton, Ecma International
           1. Let _asyncDisposableStack_ be the *this* value.
           1. Perform ? RequireInternalSlot(_asyncDisposableStack_, [[AsyncDisposableState]]).
           1. If _asyncDisposableStack_.[[AsyncDisposableState]] is ~disposed~, throw a *ReferenceError* exception.
-          1. If _value_ is neither *null* nor *undefined*, then
-            1. If Type(_value_) is not Object, throw a *TypeError* exception.
-            1. Let _method_ be GetDisposeMethod(_value_, ~async-dispose~).
-            1. If _method_ is *undefined*, then
-                1. Throw a *TypeError* exception.
-            1. Else,
-              1. Perform ? AddDisposableResource(_disposableStack_, _value_, ~async-dispose~, _method_).
+          1. Perform ? AddDisposableResource(_disposableStack_, _value_, ~async-dispose~).
           1. Return _value_.
         </emu-alg>
       </emu-clause>
