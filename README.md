@@ -40,12 +40,12 @@ As such, we propose the adoption of a novel syntax to simplify this common patte
 ```js
 // in an async function:
 async function * g() {
-  async using handle = acquireFileHandle(); // async-block-scoped critical resource
+  using await handle = acquireFileHandle(); // async-block-scoped critical resource
 } // async cleanup
 
-// in an `await using {}` block:
-await using {
-  async using obj = g(); // block-scoped declaration
+// in a block in an async context:
+{
+  using await obj = g(); // block-scoped declaration
   const r = await obj.next();
 } // calls finally blocks in `g` and awaits result
 ```
@@ -141,7 +141,7 @@ This proposal is motivated by a number of cases:
   // avoids leaking `a` or `b` to outer scope
   // ensures `b` is disposed before `a` in case `b` depends on `a`
   // ensures `a` is disposed even if disposing `b` throws
-  async using a = ..., b = ...;
+  using await a = ..., b = ...;
   ...
   ```
 - Non-blocking memory/IO applications:
@@ -151,7 +151,7 @@ This proposal is motivated by a number of cases:
 
   export async function readData() {
     // wait for outstanding writer and take a read lock
-    async using lockHandle = await lock.read();
+    using await lockHandle = await lock.read();
     ... // any number of readers
     await ...;
     ... // still in read lock after `await`
@@ -159,7 +159,7 @@ This proposal is motivated by a number of cases:
 
   export async function writeData(data) {
     // wait for all readers and take a write lock
-    async using lockHandle = await lock.write();
+    using await lockHandle = await lock.write();
     ... // only one writer
     await ...;
     ... // still in write lock after `await`
@@ -192,37 +192,145 @@ This proposal is motivated by a number of cases:
   - `WeakRef` values
   - `FinalizationRegistry` entries
 - _Explicit Resource Management_ &mdash; Indicates a system whereby the lifetime of a "resource" is managed explicitly
-  by the user either **imperatively** (by directly calling a method like `Symbol.dispose` or `Symbol.asyncDispose`) or **declaratively** (through a block-scoped declaration like `using` or `async using`).
+  by the user either **imperatively** (by directly calling a method like `Symbol.dispose` or `Symbol.asyncDispose`) or **declaratively** (through a block-scoped declaration like `using` or `using await`).
 
 # Syntax
 
-## `async using` Declarations
+## `using await` Declarations
 
 ```js
 // an asynchronously-disposed, block-scoped resource
-async using x = expr1;            // resource w/ local binding
-async using y = expr2, z = expr4; // multiple resources
+using await x = expr1;            // resource w/ local binding
+using await y = expr2, z = expr4; // multiple resources
 ```
 
-An `async using` declaration can appear in the following contexts:
+An `using await` declaration can appear in the following contexts:
 - The top level of a _Module_ anywhere _VariableStatement_ is allowed, as long as it is not immediately nested inside
-  of a _Block_, _CaseClause_, or _DefaultClause_.
-- In the body of an async function or async generator, as long as it is not immediately nested inside of a _Block_,
-  _CaseClause_, or _DefaultClause_.
-- In the head of a `for-await-of` statement.
-- As an immediate child of an `await using` Block.
+  of a _CaseClause_ or _DefaultClause_.
+- In the body of an async function or async generator anywhere a _VariableStatement_ is allowed, as long as it is not
+  immediately nested inside of a _CaseClause_ or _DefaultClause_.
+- In the head of a `for-of` or `for-await-of` statement.
 
-## `await using` Blocks
+## `using await` in `for-of` and `for-await-of` Statements
 
 ```js
-await using {
-  // statements
+for (using await x of y) ...
 
-} // resources added with `using` or `async using` are disposed, `await`-ing any results.
+for await (using await x of y) ...
 ```
 
-An `await using` Block is a _Statement_ that can appear anywhere a `for-await-of` statement is legal (i.e., at the top
-level of a _Module_ or inside an async function or async generator body).
+You can use a `using await` declaration in a `for-of` or `for-await-of` statement inside of an async context to
+explicitly bind each iterated value as an async disposable resource. `for-await-of` does not implicitly make a non-async
+`using` declaration into an async `using await` declaration, as the `await` markers in  `for-await-of` and `using await`
+are explicit indicators for distinct cases: `for await` *only* indicates async iteration, while `using await` *only*
+indicates async disposal. For example:
+
+```js
+
+// sync iteration, sync disposal
+for (using x of y) ; // no implicit `await` at end of each iteration
+
+// sync iteration, async disposal
+for (using await x of y) ; // implicit `await` at end of each iteration
+
+// async iteration, sync disposal
+for await (using x of y) ; // implicit `await` at end of each iteration
+
+// async iteration, async disposal
+for await (using await x of y) ; // implicit `await` at end of each iteration
+```
+
+While there is some overlap in that the last three cases introduce some form of implicit `await` during execution, it
+is intended that the presence or absence of the `await` modifier in a `using` declaration is an explicit indicator as to
+whether we are expecting the iterated value to have an `@@asyncDispose` method. This distinction is in line with the
+behavior of `for-of` and `for-await-of`:
+
+```js
+const iter = { [Symbol.iterator]() { return [].values(); } };
+const asyncIter = { [Symbol.asyncIterator]() { return [].values(); } };
+
+for (const x of iter) ; // ok: `iter` has @@iterator
+for (const x of asyncIter) ; // throws: `asyncIter` does not have @@iterator
+
+for await (const x of iter) ; // ok: `iter` has @@iterator (fallback)
+for await (const x of asyncIter) ; // ok: `asyncIter` has @@asyncIterator
+
+```
+
+`using` and `using await` have the same distinction:
+
+```js
+const res = { [Symbol.dispose]() {} };
+const asyncRes = { [Symbol.asyncDispose]() {} };
+
+using x = res; // ok: `res` has @@dispose
+using x = asyncRes; // throws: `asyncRes` does not have @@dispose
+
+using await x = res; // ok: `res` has @@dispose (fallback)
+using await x = asyncres; // ok: `asyncRes` has @@asyncDispose
+```
+
+This results in a matrix of behaviors based on the presence of each `await` marker:
+
+```js
+const res = { [Symbol.dispose]() {} };
+const asyncRes = { [Symbol.asyncDispose]() {} };
+const iter = { [Symbol.iterator]() { return [res, asyncRes].values(); } };
+const asyncIter = { [Symbol.asyncIterator]() { return [res, asyncRes].values(); } };
+
+for (using x of iter) ;
+// sync iteration, sync disposal
+// - `iter` has @@iterator: ok
+// - `res` has @@dispose: ok
+// - `asyncRes` does not have @@dispose: *error*
+
+for (using x of asyncIter) ;
+// sync iteration, sync disposal
+// - `asyncIter` does not have @@iterator: *error*
+
+for (using await x of iter) ;
+// sync iteration, async disposal
+// - `iter` has @@iterator: ok
+// - `res` has @@dispose (fallback): ok
+// - `asyncRes` has @@asyncDispose: ok
+
+for (using await x of asyncIter) ;
+// sync iteration, async disposal
+// - `asyncIter` does not have @@iterator: error
+
+for await (using x of iter) ;
+// async iteration, sync disposal
+// - `iter` has @@iterator (fallback): ok
+// - `res` has @@dispose: ok
+// - `asyncRes` does not have @@dispose: error
+
+for await (using x of asyncIter) ;
+// async iteration, sync disposal
+// - `asyncIter` has @@asyncIterator: ok
+// - `res` has @@dispose: ok
+// - `asyncRes` does not have @@dispose: error
+
+for await (using await x of iter) ;
+// async iteration, async disposal
+// - `iter` has @@iterator (fallback): ok
+// - `res` has @@dispose (fallback): ok
+// - `asyncRes` does has @@asyncDispose: ok
+
+for await (using await x of asyncIter) ;
+// async iteration, async disposal
+// - `asyncIter` has @@asyncIterator: ok
+// - `res` has @@dispose (fallback): ok
+// - `asyncRes` does has @@asyncDispose: ok
+```
+
+Or, in table form:
+
+| Syntax                           | Iteration                      | Disposal                     |
+|:---------------------------------|:------------------------------:|:----------------------------:|
+| `for (using x of y)`             | `@@iterator`                   | `@@dispose`                  |
+| `for (using await x of y)`       | `@@iterator`                   | `@@asyncDispose`/`@@dispose` |
+| `for await (using x of y)`       | `@@asyncIterator`/`@@iterator` | `@@dispose`                  |
+| `for await (using await x of y)` | `@@asyncIterator`/`@@iterator` | `@@asyncDispose`/`@@dispose` |
 
 # Grammar
 
@@ -230,25 +338,25 @@ Please refer to the [specification text][Specification] for the most recent vers
 
 # Semantics
 
-## `async using` Declarations
+## `using await` Declarations
 
-### `async using` Declarations with Explicit Local Bindings
+### `using await` Declarations with Explicit Local Bindings
 
 ```grammarkdown
 UsingDeclaration :
-  `async` `using` BindingList `;`
+  `using` `await` BindingList `;`
 
 LexicalBinding :
     BindingIdentifier Initializer
 ```
 
-When an `async using` declaration is parsed with _BindingIdentifier_ _Initializer_, the bindings created in the
-declaration are tracked for disposal at the end of the containing async function body, `await using` Block, or _Module_:
+When an `using await` declaration is parsed with _BindingIdentifier_ _Initializer_, the bindings created in the
+declaration are tracked for disposal at the end of the containing async function body, _Block_, or _Module_:
 
 ```js
-await using {
+{
   ... // (1)
-  async using x = expr1;
+  using await x = expr1;
   ... // (2)
 }
 ```
@@ -297,30 +405,30 @@ The above example has similar runtime semantics as the following transposed repr
 }
 ```
 
-If exceptions are thrown both in the statements following the `async using` declaration and in the call to
+If exceptions are thrown both in the statements following the `using await` declaration and in the call to
 `[Symbol.asyncDispose]()`, all exceptions are reported.
 
-### `async using` Declarations with Multiple Resources
+### `using await` Declarations with Multiple Resources
 
-An `async using` declaration can mix multiple explicit bindings in the same declaration:
+An `using await` declaration can mix multiple explicit bindings in the same declaration:
 
 ```js
-await using {
+{
   ...
-  async using x = expr1, y = expr2;
+  using await x = expr1, y = expr2;
   ...
 }
 ```
 
-These bindings are again used to perform resource disposal when the `await using` Block or _Module_ exits, however in
-this case each resource's `[Symbol.asyncDispose]()` is invoked in the reverse order of their declaration. This is
-_approximately_ equivalent to the following:
+These bindings are again used to perform resource disposal when the _Block_ or _Module_ exits, however in this case each
+resource's `[Symbol.asyncDispose]()` is invoked in the reverse order of their declaration. This is _approximately_
+equivalent to the following:
 
 ```js
-await using {
+{
   ... // (1)
-  async using x = expr1;
-  async using y = expr2;
+  using await x = expr1;
+  using await y = expr2;
   ... // (2)
 }
 ```
@@ -386,18 +494,17 @@ occur during binding initialization results in evaluation of the cleanup step. W
 the list, we track each resource in the order they are declared. As a result, we must release these resources in reverse
 order.
 
-### `async using` Declarations and `null` or `undefined` Values
+### `using await` Declarations and `null` or `undefined` Values
 
-This proposal has opted to ignore `null` and `undefined` values provided to `async using` declarations. This is similar
-to the behavior of `using` in the original
-[Explicit Resource Management][using] proposal, which also
+This proposal has opted to ignore `null` and `undefined` values provided to `using await` declarations. This is similar
+to the behavior of `using` in the original [Explicit Resource Management][using] proposal, which also
 allows `null` and `undefined`, as well as C#, which also allows `null`,. One primary reason for this behavior is to
 simplify a common case where a resource might be optional, without requiring duplication of work or needless
 allocations:
 
 ```js
-if (isResourceAvailable()) await using {
-  async using resource = getResource();
+if (isResourceAvailable()) {
+  using await resource = getResource();
   ... // (1)
   resource.doSomething()
   ... // (2)
@@ -412,22 +519,22 @@ else {
 Compared to:
 
 ```js
-async using resource = isResourceAvailable() ? getResource() : undefined;
+using await resource = isResourceAvailable() ? getResource() : undefined;
 ... // (1) do some work with or without resource
 resource?.doSomething();
 ... // (2) do some other work with or without resource
 ```
 
-### `async using` Declarations and Values Without `[Symbol.asyncDispose]` or `[Symbol.dispose]`
+### `using await` Declarations and Values Without `[Symbol.asyncDispose]` or `[Symbol.dispose]`
 
 If a resource does not have a callable `[Symbol.asyncDispose]` or `[Symbol.asyncDispose]` member, a `TypeError` would be thrown **immediately** when the resource is tracked.
 
-### `async using` Declarations in `for-of` and `for-await-of` Loops
+### `using await` Declarations in `for-of` and `for-await-of` Loops
 
-A `using` declaration _may_ occur in the _ForDeclaration_ of a `for-await-of` loop:
+A `using await` declaration _may_ occur in the _ForDeclaration_ of a `for-await-of` loop:
 
 ```js
-for await (async using x of iterateResources()) {
+for await (using await x of iterateResources()) {
   // use x
 }
 ```
@@ -436,7 +543,44 @@ In this case, the value bound to `x` in each iteration will be _asynchronously_ 
 This will not dispose resources that are not iterated, such as if iteration is terminated early due to `return`,
 `break`, or `throw`.
 
-`async using` declarations _may not_ be used in in the head of a `for-of` or `for-in` loop.
+`using await` declarations _may not_ be used in in the head of a `for-of` or `for-in` loop.
+
+### Implicit Async Interleaving Points ("implicit `await`")
+
+The `using await` syntax introduces an implicit async interleaving point (i.e., an implicit `await`) whenever control
+flow exits an async function body, _Block_, or _Module_ containing a `using await` declaration. This means that two
+statements that currently execute in the same microtask, such as:
+
+```js
+async function f() {
+  {
+    a();
+  } // exit block
+  b(); // same microtask as call to `a()`
+}
+```
+
+will instead execute in different microtasks if a `using await` declaration is introduced:
+
+```js
+async function f() {
+  {
+    using await x = ...;
+    a();
+  } // exit block, implicit `await`
+  b(); // different microtask from call to `a()`.
+}
+```
+
+It is important that such an implicit interleaving point be adequately indicated within the syntax. We believe that
+the presence of `using await` within such a block is an adequate indicator, since it should be fairly easy to recognize
+a _Block_ containing a `using await` statement in well-formated code.
+
+It is also feasible for editors to use features such as syntax highlighting, editor decorations, and inlay hints to
+further highlight such transitions, without needing to specify additional syntax.
+
+Further discussion around the `using await` syntax and how it pertains to implicit async interleaving points can be
+found in [#1](https://github.com/tc39/proposal-async-explicit-resource-management/issues/1).
 
 # Examples
 
@@ -444,16 +588,16 @@ The following show examples of using this proposal with various APIs, assuming t
 
 ### WHATWG Streams API
 ```js
-await using {
-  async using stream = new ReadableStream(...);
+{
+  using await stream = new ReadableStream(...);
   ...
 } // 'stream' is canceled and result is awaited
 ```
 
 ### NodeJS Streams
 ```js
-await using {
-  async using writable = ...;
+{
+  using await writable = ...;
   writable.write(...);
 } // 'writable.end()' is called and its result is awaited
 ```
@@ -462,7 +606,7 @@ await using {
 ```js
 // roll back transaction if either action fails
 async function transfer(account1, account2) {
-  async using tx = transactionManager.startTransaction(account1, account2);
+  using await tx = transactionManager.startTransaction(account1, account2);
   await account1.debit(amount);
   await account2.credit(amount);
 
@@ -480,8 +624,7 @@ This proposal adds the `asyncDispose` property to the `Symbol` constructor whose
 **Well-known Symbols**
 | Specification Name | \[\[Description]] | Value and Purpose |
 |:-|:-|:-|
-| _@@dispose_ | *"Symbol.dispose"* | A method that explicitly disposes of resources held by the object. Called by the semantics of `using` declarations and by `DisposableStack` objects. |
-| _@@asyncDispose_ | *"Symbol.asyncDispose"* | A method that asynchronosly explicitly disposes of resources held by the object. Called by the semantics of `async using` declarations and by `AsyncDisposableStack` objects. |
+| _@@asyncDispose_ | *"Symbol.asyncDispose"* | A method that asynchronosly explicitly disposes of resources held by the object. Called by the semantics of `using await` declarations and by `AsyncDisposableStack` objects. |
 
 **TypeScript Definition**
 ```ts
@@ -502,7 +645,7 @@ We propose to add `Symbol.asyncDispose` to the built-in `%AsyncIteratorPrototype
 }
 ```
 
-## The Common `AsyncDisposabl` Interface
+## The Common `AsyncDisposable` Interface
 
 ### The `AsyncDisposable` Interface
 
@@ -543,6 +686,7 @@ class AsyncDisposableStack {
 
   /**
    * Alias for `[Symbol.asyncDispose]()`.
+   * @returns {Promise<void>}.
    */
   disposeAsync();
 
@@ -632,11 +776,11 @@ callback will be executed when the stack's disposal method is executed.
 
 The ability to create a disposable resource from a callback has several benefits:
 
-- It allows developers to leverage `async using` while working with existing resources that do not conform to the
+- It allows developers to leverage `using await` while working with existing resources that do not conform to the
   `Symbol.asyncDispose` mechanic:
   ```js
-  await using {
-    async using stack = new AsyncDisposableStack();
+  {
+    using await stack = new AsyncDisposableStack();
     const stream = stack.adopt(createReadableStream(), async reader => await reader.close());
     ...
   }
@@ -645,7 +789,7 @@ The ability to create a disposable resource from a callback has several benefits
   `defer` statement:
   ```js
   async function f() {
-    async using stack = new AsyncDisposableStack();
+    using await stack = new AsyncDisposableStack();
     stack.defer(async () => await someAsyncCleanupOperaiton());
     ...
   }
@@ -678,7 +822,7 @@ class PluginHost {
     // Create an AsyncDisposableStack that is disposed when the constructor exits.
     // If construction succeeds, we move everything out of `stack` and into
     // `#disposables` to be disposed later.
-    async using stack = new AsyncDisposableStack();
+    using await stack = new AsyncDisposableStack();
 
 
     // Create an IPC adapter around process.send/process.on("message").
@@ -817,7 +961,7 @@ consideration. The actual implementation is at the discretion of the NodeJS main
       - SYG (@syg) added as reviewer
 * TC39 December 1st, 2022 (notes TBA)
   - Conclusion
-    - `async using` declarations, `Symbol.asyncDispose`, and `AsyncDisposableStack` remain at Stage 2 as an independent
+    - `using await` declarations, `Symbol.asyncDispose`, and `AsyncDisposableStack` remain at Stage 2 as an independent
       proposal.
 
 # TODO
