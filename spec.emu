@@ -71,7 +71,7 @@ contributors: Ron Buckton, Ecma International
                 <ins>`"Symbol.asyncDispose"`</ins>
               </td>
               <td>
-                <ins>A method that performs explicit resource cleanup on an object. Called by the semantics of the `using await` declaration and AsyncDisposableStack objects.</ins>
+                <ins>A method that performs explicit resource cleanup on an object. Called by the semantics of the `await using` declaration and AsyncDisposableStack objects.</ins>
               </td>
             </tr>
             <tr>
@@ -975,7 +975,7 @@ contributors: Ron Buckton, Ecma International
               ~sync-dispose~ or ~async-dispose~.
             </td>
             <td>
-              Indicates whether the resource was added by a `using` declaration or DisposableStack object (~sync-dispose~) or a `using await` declaration or AsyncDisposableStack object (~async-dispose~).
+              Indicates whether the resource was added by a `using` declaration or DisposableStack object (~sync-dispose~) or a `await using` declaration or AsyncDisposableStack object (~async-dispose~).
             </td>
           </tr>
           <tr>
@@ -1150,9 +1150,8 @@ contributors: Ron Buckton, Ecma International
       </emu-alg>
       <ins class="block">
       <emu-grammar>
-        UsingDeclaration :
-          `using` BindingList `;`
-          `using await` BindingList `;`
+        UsingDeclaration : `using` BindingList `;`
+        AwaitUsingDeclaration : `await` `using` BindingList `;`
       </emu-grammar>
       <emu-alg>
         1. Return the BoundNames of |BindingList|.
@@ -1460,9 +1459,8 @@ contributors: Ron Buckton, Ecma International
         1. Return *false*.
       </emu-alg>
       <emu-grammar>
-        UsingDeclaration :
-          `using` BindingList `;`
-          `using` `await` BindingList `;`
+        UsingDeclaration : `using` BindingList `;`
+        AwaitUsingDeclaration : `await` `using` BindingList `;`
       </emu-grammar>
       <emu-alg>
         1. Return *true*.
@@ -1474,7 +1472,7 @@ contributors: Ron Buckton, Ecma International
       <emu-grammar>
         ForDeclaration :
           `using` ForBinding
-          `using` `await` ForBinding
+          `await` `using` ForBinding
       </emu-grammar>
       <emu-alg>
         1. Return *true*.
@@ -1530,7 +1528,7 @@ contributors: Ron Buckton, Ecma International
       <emu-alg>
         1. Return *false*.
       </emu-alg>
-      <emu-grammar>UsingDeclaration : `using` `await` BindingList `;`</emu-grammar>
+      <emu-grammar>AwaitUsingDeclaration : `await` `using` BindingList `;`</emu-grammar>
       <emu-alg>
         1. Return *true*.
       </emu-alg>
@@ -1542,7 +1540,7 @@ contributors: Ron Buckton, Ecma International
       <emu-alg>
         1. Return *false*.
       </emu-alg>
-      <emu-grammar>ForDeclaration : `using` `await` ForBinding</emu-grammar>
+      <emu-grammar>ForDeclaration : `await` `using` ForBinding</emu-grammar>
       <emu-alg>
         1. Return *true*.
       </emu-alg>
@@ -1821,7 +1819,7 @@ contributors: Ron Buckton, Ecma International
               InitializeBinding(N, V<ins>, _hint_</ins>)
             </td>
             <td>
-              Set the value of an already existing but uninitialized binding in an Environment Record. The String value _N_ is the text of the bound name. _V_ is the value for the binding and is a value of any ECMAScript language type. <ins>_hint_ indicates whether the binding came from either a `using` declaration (~sync-dispose~), a `using await` declaration (~async-dispose~), or a regular variable declaration (~normal~).</ins>
+              Set the value of an already existing but uninitialized binding in an Environment Record. The String value _N_ is the text of the bound name. _V_ is the value for the binding and is a value of any ECMAScript language type. <ins>_hint_ indicates whether the binding came from either a `using` declaration (~sync-dispose~), a `await using` declaration (~async-dispose~), or a regular variable declaration (~normal~).</ins>
             </td>
           </tr>
           <tr>
@@ -1879,7 +1877,7 @@ contributors: Ron Buckton, Ecma International
       <emu-clause id="sec-declarative-environment-records">
         <h1>Declarative Environment Records</h1>
         <p>Each <dfn>Declarative Environment Record</dfn> is associated with an ECMAScript program scope containing variable, constant, let, class, module, import, and/or function declarations. A declarative Environment Record binds the set of identifiers defined by the declarations contained within its scope.</p>
-        <p><ins>Every Declarative Environment Record also has a [[DisposeCapability]] field, which contains a DisposeCapability Record. This field holds a stack of resources tracked by the `using` declarations and `using await` declarations that must be disposed when the Evaluation step that constructed the Environment Record has completed.</ins></p>
+        <p><ins>Every Declarative Environment Record also has a [[DisposeCapability]] field, which contains a DisposeCapability Record. This field holds a stack of resources tracked by the `using` declarations and `await using` declarations that must be disposed when the Evaluation step that constructed the Environment Record has completed.</ins></p>
         <p>The behaviour of the concrete specification methods for Declarative Environment Records is defined by the following algorithms.</p>
 
         <emu-clause id="sec-declarative-environment-records-initializebinding-n-v" type="concrete method">
@@ -2112,6 +2110,45 @@ contributors: Ron Buckton, Ecma International
   </emu-clause>
 </emu-clause>
 
+<emu-clause id="sec-ecmascript-language-expressions">
+  <h1>ECMAScript Language: Expressions</h1>
+  <emu-clause id="sec-unary-operators">
+    <h1>Unary Operators</h1>
+    <h2>Syntax</h2>
+    <emu-grammar type="definition">
+      UnaryExpression[Yield, Await] :
+        UpdateExpression[?Yield, ?Await]
+        `delete` UnaryExpression[?Yield, ?Await]
+        `void` UnaryExpression[?Yield, ?Await]
+        `typeof` UnaryExpression[?Yield, ?Await]
+        `+` UnaryExpression[?Yield, ?Await]
+        `-` UnaryExpression[?Yield, ?Await]
+        `~` UnaryExpression[?Yield, ?Await]
+        `!` UnaryExpression[?Yield, ?Await]
+        <del>[+Await] AwaitExpression[?Yield]</del>
+        <ins>[+Await] CoverAwaitExpressionAndAwaitUsingDeclaration[?Yield]</ins>
+
+      <ins class="block">
+        CoverAwaitExpressionAndAwaitUsingDeclaration[Yield] :
+          `await` UnaryExpression[Yield, +Await]
+          `await` UnaryExpression[Yield, +Await] [no LineTerminator here] BindingList[+In, ?Yield, +Await, ~Pattern] `;`
+      </ins>
+    </emu-grammar>
+    <ins class="block">
+    <h2>Supplemental Syntax</h2>
+    <p>
+      When processing an instance of the production<br>
+      <emu-grammar>UnaryExpression[Yield, Await] : CoverAwaitExpressionAndAwaitUsingDeclaration[?Yield]</emu-grammar><br>
+      the interpretation of |CoverAwaitExpressionAndAwaitUsingDeclaration| is refined using the following grammar:
+    </p>
+    <emu-grammar type="definition">
+      AwaitExpression[?Yield] :
+        `await` UnaryExpression[?Yield, +Await]
+    </emu-grammar>
+    </ins>
+  </emu-clause>
+</emu-clause>
+
 <emu-clause id="sec-ecmascript-language-statements-and-declarations">
   <h1>ECMAScript Language: Statements and Declarations</h1>
 
@@ -2179,36 +2216,48 @@ contributors: Ron Buckton, Ecma International
       <h2>Syntax</h2>
       <emu-grammar type="definition">
         LexicalDeclaration[In, Yield, Await] :
-          LetOrConst BindingList[?In, ?Yield, ?Await, <ins>~Using</ins>] `;`
+          LetOrConst BindingList[?In, ?Yield, ?Await, <ins>+Pattern</ins>] `;`
           <ins>UsingDeclaration[?In, ?Yield, ?Await]</ins>
 
         LetOrConst :
           `let`
           `const`
 
-        <ins>
+        <ins class="block">
         UsingDeclaration[In, Yield, Await] :
-          `using` [no LineTerminator here] [lookahead != `await`] BindingList[?In, ?Yield, ?Await, +Using] `;`
-          [+Await] `using` [no LineTerminator here] `await` [no LineTerminator here] BindingList[?In, ?Yield, +Await, +Using] `;`
+          `using` [no LineTerminator here] [lookahead != `await`] BindingList[?In, ?Yield, ?Await, ~Pattern] `;`
+          [+Await] CoverAwaitExpressionAndAwaitUsingDeclaration[?Yield]
         </ins>
 
-        BindingList[In, Yield, Await, <ins>Using</ins>] :
-          LexicalBinding[?In, ?Yield, ?Await, <ins>?Using</ins>]
-          BindingList[?In, ?Yield, ?Await, <ins>?Using</ins>] `,` LexicalBinding[?In, ?Yield, ?Await, <ins>?Using</ins>]
+        BindingList[In, Yield, Await, <ins>Pattern</ins>] :
+          LexicalBinding[?In, ?Yield, ?Await, <ins>?Pattern</ins>]
+          BindingList[?In, ?Yield, ?Await, <ins>?Pattern</ins>] `,` LexicalBinding[?In, ?Yield, ?Await, <ins>?Pattern</ins>]
 
-        LexicalBinding[In, Yield, Await, <ins>Using</ins>] :
+        LexicalBinding[In, Yield, Await, <ins>Pattern</ins>] :
           BindingIdentifier[?Yield, ?Await] Initializer[?In, ?Yield, ?Await]?
           <del>BindingPattern[?Yield, ?Await] Initializer[?In, ?Yield, ?Await]</del>
-          <ins>[~Using] BindingPattern[?Yield, ?Await] Initializer[?In, ?Yield, ?Await]</ins>
+          <ins>[+Pattern] BindingPattern[?Yield, ?Await] Initializer[?In, ?Yield, ?Await]</ins>
       </emu-grammar>
 
+      <ins class="block">
+      <h2>Supplemental Syntax</h2>
+      <p>
+        When processing an instance of the production<br>
+        <emu-grammar>UsingDeclaration[Yield, Await] : CoverAwaitExpressionAndAwaitUsingDeclaration[?Yield]</emu-grammar><br>
+        the interpretation of |CoverAwaitExpressionAndAwaitUsingDeclaration| is refined using the following grammar:
+      </p>
+      <emu-grammar type="definition">
+        AwaitUsingDeclaration[?Yield] :
+          `await` [no LineTerminator here] `using` [no LineTerminator here] BindingList[+In, ?Yield, +Await, ~Pattern] `;`
+        </emu-grammar>
+      </ins>
+  
       <emu-clause id="sec-let-and-const-declarations-static-semantics-early-errors">
         <h1>Static Semantics: Early Errors</h1>
         <ins class="block">
         <emu-grammar>
-          UsingDeclaration :
-            `using` BindingList `;`
-            `using` `await` BindingList `;`
+          UsingDeclaration : `using` BindingList `;`
+          AwaitUsingDeclaration : `await` `using` BindingList `;`
         </emu-grammar>
         <ul>
           <li>
@@ -2253,7 +2302,7 @@ contributors: Ron Buckton, Ecma International
           1. Return ~empty~.
         </emu-alg>
 
-        <emu-grammar>UsingDeclaration : `using` `await` BindingList `;`</emu-grammar>
+        <emu-grammar>AwaitUsingDeclaration : `await` `using` BindingList `;`</emu-grammar>
         <emu-alg>
           1. Perform ? BindingEvaluation of |BindingList| with parameter ~async-dispose~.
           1. Return ~empty~.
@@ -2474,24 +2523,24 @@ contributors: Ron Buckton, Ecma International
       <emu-grammar type="definition">
         ForInOfStatement[Yield, Await, Return] :
           `for` `(` [lookahead != `let` `[`] LeftHandSideExpression[?Yield, ?Await] `in` Expression[+In, ?Yield, ?Await] `)` Statement[?Yield, ?Await, ?Return]
-          `for` `(` `var` ForBinding[?Yield, ?Await, <ins>~Using</ins>] `in` Expression[+In, ?Yield, ?Await] `)` Statement[?Yield, ?Await, ?Return]
+          `for` `(` `var` ForBinding[?Yield, ?Await, <ins>+Pattern</ins>] `in` Expression[+In, ?Yield, ?Await] `)` Statement[?Yield, ?Await, ?Return]
           `for` `(` ForDeclaration[?Yield, ?Await, <ins>~Using</ins>] `in` Expression[+In, ?Yield, ?Await] `)` Statement[?Yield, ?Await, ?Return]
           `for` `(` [lookahead &notin; {`let`, `async` `of`}] LeftHandSideExpression[?Yield, ?Await] `of` AssignmentExpression[+In, ?Yield, ?Await] `)` Statement[?Yield, ?Await, ?Return]
-          `for` `(` `var` ForBinding[?Yield, ?Await, <ins>~Using</ins>] `of` AssignmentExpression[+In, ?Yield, ?Await] `)` Statement[?Yield, ?Await, ?Return]
+          `for` `(` `var` ForBinding[?Yield, ?Await, <ins>+Pattern</ins>] `of` AssignmentExpression[+In, ?Yield, ?Await] `)` Statement[?Yield, ?Await, ?Return]
           `for` `(` <ins>[lookahead != `using` `of`]</ins> ForDeclaration[?Yield, ?Await, <ins>+Using</ins>] `of` AssignmentExpression[+In, ?Yield, ?Await] `)` Statement[?Yield, ?Await, ?Return]
           [+Await] `for` `await` `(` [lookahead != `let`] LeftHandSideExpression[?Yield, ?Await] `of` AssignmentExpression[+In, ?Yield, ?Await] `)` Statement[?Yield, ?Await, ?Return]
-          [+Await] `for` `await` `(` `var` ForBinding[?Yield, ?Await, <ins>~Using</ins>] `of` AssignmentExpression[+In, ?Yield, ?Await] `)` Statement[?Yield, ?Await, ?Return]
+          [+Await] `for` `await` `(` `var` ForBinding[?Yield, ?Await, <ins>+Pattern</ins>] `of` AssignmentExpression[+In, ?Yield, ?Await] `)` Statement[?Yield, ?Await, ?Return]
           [+Await] `for` `await` `(` <ins>[lookahead != `using` `of`]</ins> ForDeclaration[?Yield, ?Await, <ins>+Using</ins>] `of` AssignmentExpression[+In, ?Yield, ?Await] `)` Statement[?Yield, ?Await, ?Return]
 
         ForDeclaration[Yield, Await, <ins>Using</ins>] :
-          LetOrConst ForBinding[?Yield, ?Await, <ins>~Using</ins>]
-          <ins>[+Using] `using` [no LineTerminator here] [lookahead != `await`] ForBinding[?Yield, ?Await, +Using]</ins>
-          <ins>[+Using, +Await] `using` [no LineTerminator here] `await` [no LineTerminator here] ForBinding[?Yield, +Await, +Using]</ins>
+          LetOrConst ForBinding[?Yield, ?Await, <ins>+Pattern</ins>]
+          <ins>[+Using] `using` [no LineTerminator here] [lookahead != `await`] ForBinding[?Yield, ?Await, ~Pattern]</ins>
+          <ins>[+Using, +Await] `await` [no LineTerminator here] `using` [no LineTerminator here] ForBinding[?Yield, +Await, ~Pattern]</ins>
 
-        ForBinding[Yield, Await, <ins>Using</ins>] :
+        ForBinding[Yield, Await, <ins>Pattern</ins>] :
           BindingIdentifier[?Yield, ?Await]
           <del>BindingPattern[?Yield, ?Await]</del>
-          <ins>[~Using] BindingPattern[?Yield, ?Await]</ins>
+          <ins>[+Pattern] BindingPattern[?Yield, ?Await]</ins>
       </emu-grammar>
 
       <emu-clause id="sec-runtime-semantics-fordeclarationbindinginstantiation" oldids="sec-runtime-semantics-bindinginstantiation" type="sdo">
@@ -2515,7 +2564,7 @@ contributors: Ron Buckton, Ecma International
         <emu-grammar>
           ForDeclaration :
             `using` ForBinding
-            `using` `await` ForBinding
+            `await` `using` ForBinding
         </emu-grammar>
         <emu-alg>
           1. Assert: _environment_ is a declarative Environment Record.
@@ -2961,6 +3010,28 @@ contributors: Ron Buckton, Ecma International
 
   <emu-clause id="sec-async-function-definitions">
     <h1>Async Function Definitions</h1>
+
+    <h2>Syntax</h2>
+    <emu-grammar type="definition">
+      AsyncFunctionDeclaration[Yield, Await, Default] :
+        `async` [no LineTerminator here] `function` BindingIdentifier[?Yield, ?Await] `(` FormalParameters[~Yield, +Await] `)` `{` AsyncFunctionBody `}`
+        [+Default] `async` [no LineTerminator here] `function` `(` FormalParameters[~Yield, +Await] `)` `{` AsyncFunctionBody `}`
+
+      AsyncFunctionExpression :
+        `async` [no LineTerminator here] `function` BindingIdentifier[~Yield, +Await]? `(` FormalParameters[~Yield, +Await] `)` `{` AsyncFunctionBody `}`
+
+      AsyncMethod[Yield, Await] :
+        `async` [no LineTerminator here] ClassElementName[?Yield, ?Await] `(` UniqueFormalParameters[~Yield, +Await] `)` `{` AsyncFunctionBody `}`
+
+      AsyncFunctionBody :
+        FunctionBody[~Yield, +Await]
+
+      AwaitExpression[Yield] :
+        `await` UnaryExpression[?Yield, +Await]
+
+      CoverAwaitExpressionAndAwaitUsingDeclaration[Yield] :
+        `await` UnaryExpression[?Yield, +Await] [no LineTerminator here] []
+    </emu-grammar>
 
     <emu-clause id="sec-runtime-semantics-instantiateasyncfunctionexpression" type="sdo">
       <h1>
@@ -3915,7 +3986,7 @@ contributors: Ron Buckton, Ecma International
               <td>
                 <p>Invoking this method notifies the <em>AsyncDisposable</em> object that the caller does not intend to continue to use this object. This method should perform any necessary logic to perform explicit clean-up of the resource including, but not limited to, file system handles, streams, host objects, etc. When an exception is thrown from this method, it typically means that the resource could not be explicitly freed. An <em>AsyncDisposable</em> object is not considered "disposed" until the resulting Promise has been fulfilled.</p>
                 <p>If called more than once on the same object, the function should not throw an exception. However, this requirement is not enforced.</p>
-                <p>When using an <em>AsyncDisposable</em> object, it is good practice to create the instance with a `using await` declaration, as the resource will be automatically disposed when the |Block| or |Module| immediately containing the declaration has been evaluated.</p>
+                <p>When using an <em>AsyncDisposable</em> object, it is good practice to create the instance with a `await using` declaration, as the resource will be automatically disposed when the |Block| or |Module| immediately containing the declaration has been evaluated.</p>
               </td>
             </tr>
             </tbody>
