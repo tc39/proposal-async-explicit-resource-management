@@ -1149,9 +1149,16 @@ contributors: Ron Buckton, Ecma International
         1. Return the BoundNames of |BindingList|.
       </emu-alg>
       <ins class="block">
+      <emu-grammar>LexicalDeclaration : CoverAsyncUsingDeclarationAndAsyncArrowIdentifierHead</emu-grammar>
+      <emu-alg>
+        1. Let _decl_ be the |AsyncUsingDeclaration| covered by |CoverAsyncUsingDeclarationAndAsyncArrowIdentifierHead|.
+        1. Return the BoundNames of _decl_.
+      </emu-alg>
       <emu-grammar>
         UsingDeclaration :
           `using` BindingList `;`
+
+        AsyncUsingDeclaration :
           `using await` BindingList `;`
       </emu-grammar>
       <emu-alg>
@@ -1315,7 +1322,7 @@ contributors: Ron Buckton, Ecma International
       <emu-grammar>
         CoverAsyncUsingDeclarationAndAsyncArrowIdentifierHead :
           `async` AsyncArrowBindingIdentifier
-          `async` AsyncArrowBindingIdentifier BindingList
+          `async` AsyncArrowBindingIdentifier BindingList `;`
       </emu-grammar>
       <emu-alg>
         1. Let _head_ be the |AsyncArrowIdentifierHead| that is covered by |CoverAsyncUsingDeclarationAndAsyncArrowIdentifierHead|.
@@ -1406,9 +1413,10 @@ contributors: Ron Buckton, Ecma International
         1. Return IsConstantDeclaration of |LetOrConst|.
       </emu-alg>
       <ins class="block">
-      <emu-grammar>LexicalDeclaration : UsingDeclaration</emu-grammar>
+      <emu-grammar>LexicalDeclaration : CoverAsyncUsingDeclarationAndAsyncArrowIdentifierHead</emu-grammar>
       <emu-alg>
-        1. Return *true*.
+        1. Let _decl_ be the |AsyncUsingDeclaration| covered by |CoverAsyncUsingDeclarationAndAsyncArrowIdentifierHead|.
+        1. Return IsConstantDeclaration of _decl_.
       </emu-alg>
       </ins>
       <emu-grammar>LetOrConst : `let`</emu-grammar>
@@ -1419,6 +1427,19 @@ contributors: Ron Buckton, Ecma International
       <emu-alg>
         1. Return *true*.
       </emu-alg>
+      <ins class="block">
+      <emu-grammar>
+        UsingDeclaration :
+          `using` BindingList `;`
+
+        AsyncUsingDeclaration :
+          `async` `using` BindingList `;`
+      </emu-grammar>
+      <emu-alg>
+        1. Let _decl_ be the |AsyncUsingDeclaration| covered by |CoverAsyncUsingDeclarationAndAsyncArrowIdentifierHead|.
+        1. Return IsConstantDeclaration of _decl_.
+      </emu-alg>
+      </ins>
       <emu-grammar>
         FunctionDeclaration :
           `function` BindingIdentifier `(` FormalParameters `)` `{` FunctionBody `}`
@@ -1470,9 +1491,17 @@ contributors: Ron Buckton, Ecma International
       <emu-alg>
         1. Return *false*.
       </emu-alg>
+      <emu-grammar>LexicalDeclaration : CoverAsyncUsingDeclarationAndAsyncArrowIdentifierHead</emu-grammar>
+      <emu-alg>
+        1. Let _decl_ be the |AsyncUsingDeclaration| covered by |CoverAsyncUsingDeclarationAndAsyncArrowIdentifierHead|.
+        1. Return IsUsingDeclaration of _decl_.
+      </emu-alg>
       <emu-grammar>
-        UsingDeclaration : `using` BindingList `;`
-        AsyncUsingDeclaration : `async` `using` BindingList `;`
+        UsingDeclaration :
+          `using` BindingList `;`
+
+        AsyncUsingDeclaration :
+          `async` `using` BindingList `;`
       </emu-grammar>
       <emu-alg>
         1. Return *true*.
@@ -1535,6 +1564,11 @@ contributors: Ron Buckton, Ecma International
       <emu-grammar>LexicalDeclaration : LetOrConst BindingList `;`</emu-grammar>
       <emu-alg>
         1. Return *false*.
+      </emu-alg>
+      <emu-grammar>LexicalDeclaration : CoverAsyncUsingDeclarationAndAsyncArrowIdentifierHead</emu-grammar>
+      <emu-alg>
+        1. Let _decl_ be the |AsyncUsingDeclaration| covered by |CoverAsyncUsingDeclarationAndAsyncArrowIdentifierHead|.
+        1. Return IsAsyncUsingDeclaration of _decl_.
       </emu-alg>
       <emu-grammar>UsingDeclaration : `using` BindingList `;`</emu-grammar>
       <emu-alg>
@@ -2469,7 +2503,7 @@ contributors: Ron Buckton, Ecma International
 
           AsyncArrowFunction[In, Yield, Await] :
             <del>`async` [no LineTerminator here] AsyncArrowBindingIdentifier[?Yield] [no LineTerminator here] `=>` AsyncConciseBody[?In]</del>
-            <ins>CoverAsyncUsingDeclarationAndAsyncArrowIdentifierHead[?Yield, ?Await] [no LineTerminator here] `=>` AsyncConciseBody[?In] #callcover</ins>
+            <ins>CoverAsyncUsingDeclarationAndAsyncArrowIdentifierHead[?In, ?Yield, ?Await] [no LineTerminator here] `=>` AsyncConciseBody[?In] #callcover</ins>
             CoverCallExpressionAndAsyncArrowHead[?Yield, ?Await] [no LineTerminator here] `=>` AsyncConciseBody[?In] #callcover
 
           AsyncArrowHead :
@@ -2585,15 +2619,15 @@ contributors: Ron Buckton, Ecma International
         LexicalDeclaration[In, Yield, Await] :
           LetOrConst BindingList[?In, ?Yield, ?Await, <ins>+Pattern</ins>] `;`
           <ins>UsingDeclaration[?In, ?Yield, ?Await]</ins>
+          <ins>[+Await] CoverAsyncUsingDeclarationAndAsyncArrowIdentifierHead[?In, ?Yield, +Await]</ins>
 
         LetOrConst :
           `let`
           `const`
 
-        <ins>
+        <ins class="block">
         UsingDeclaration[In, Yield, Await] :
           `using` [no LineTerminator here] [lookahead != `await`] BindingList[?In, ?Yield, ?Await, ~Pattern] `;`
-          [+Await] CoverAsyncUsingDeclarationAndAsyncArrowIdentifierHead[?Yield, +Await]
         </ins>
 
         BindingList[In, Yield, Await, <ins>Pattern</ins>] :
@@ -2610,13 +2644,13 @@ contributors: Ron Buckton, Ecma International
       <h2>Supplemental Syntax</h2>
       <p>
         When processing an instance of the production<br>
-        <emu-grammar>UsingDeclaration : CoverAsyncUsingDeclarationAndAsyncArrowIdentifierHead</emu-grammar><br>
+        <emu-grammar>LexicalDeclaration[In, Yield, Await] : [+Await] CoverAsyncUsingDeclarationAndAsyncArrowIdentifierHead[?In, ?Yield, +Await]</emu-grammar><br>
         the interpretation of |CoverAsyncUsingDeclarationAndAsyncArrowIdentifierHead| is refined using the following grammar:
       </p>
 
       <emu-grammar type="definition">
-        AsyncUsingDeclaration[Yield] :
-          `async` [no LineTerminator here] `using` [no LineTerminator here] BindingList[+In, ?Yield, +Await, ~Pattern] `;`
+        AsyncUsingDeclaration[In, Yield] :
+          `async` [no LineTerminator here] `using` [no LineTerminator here] BindingList[?In, ?Yield, +Await, ~Pattern] `;`
       </emu-grammar>
       </ins>
 
@@ -2624,7 +2658,7 @@ contributors: Ron Buckton, Ecma International
         <h1>Static Semantics: Early Errors</h1>
         <ins class="block">
         <emu-grammar>
-          UsingDeclaration : CoverAsyncUsingDeclarationAndAsyncArrowIdentifierHead
+          LexicalDeclaration : CoverAsyncUsingDeclarationAndAsyncArrowIdentifierHead
         </emu-grammar>
         <ul>
           <li>|CoverAsyncUsingDeclarationAndAsyncArrowIdentifierHead| must cover an |AsyncUsingDeclaration|.</li>
@@ -2686,6 +2720,13 @@ contributors: Ron Buckton, Ecma International
         </emu-alg>
 
         <ins class="block">
+        <emu-grammar>LexicalDeclaration : CoverAsyncUsingDeclarationAndAsyncArrowIdentifierHead/emu-grammar>
+        <emu-alg>
+          1. Let _decl_ be the |AsyncUsingDeclaration| covered by |CoverAsyncUsingDeclarationAndAsyncArrowIdentifierHead|.
+          1. Perform ? Evaluation of _decl_.
+          1. Return ~empty~.
+        </emu-alg>
+
         <emu-grammar>UsingDeclaration : `using` BindingList `;`</emu-grammar>
         <emu-alg>
           1. Perform ? BindingEvaluation of |BindingList| with parameter ~sync-dispose~.
@@ -3528,7 +3569,7 @@ contributors: Ron Buckton, Ecma International
     <emu-grammar type="definition">
       AsyncArrowFunction[In, Yield, Await] :
         <del>`async` [no LineTerminator here] AsyncArrowBindingIdentifier[?Yield] [no LineTerminator here] `=>` AsyncConciseBody[?In]</del>
-        <ins>CoverAsyncUsingDeclarationAndAsyncArrowIdentifierHead[?Yield, ?Await] [no LineTerminator here] `=>` AsyncConciseBody[?In]</ins>
+        <ins>CoverAsyncUsingDeclarationAndAsyncArrowIdentifierHead[?In, ?Yield, ?Await] [no LineTerminator here] `=>` AsyncConciseBody[?In]</ins>
         CoverCallExpressionAndAsyncArrowHead[?Yield, ?Await] [no LineTerminator here] `=>` AsyncConciseBody[?In] #callcover
 
       AsyncConciseBody[In] :
@@ -3539,9 +3580,9 @@ contributors: Ron Buckton, Ecma International
         BindingIdentifier[?Yield, +Await]
 
       <ins class="block">
-      CoverAsyncUsingDeclarationAndAsyncArrowIdentifierHead[Yield, Await] :
+      CoverAsyncUsingDeclarationAndAsyncArrowIdentifierHead[In, Yield, Await] :
         `async` [no LineTerminator here] AsyncArrowBindingIdentifier[?Yield]
-        [+Await] `async` [no LineTerminator here] AsyncArrowBindingIdentifier[?Yield] [no LineTerminator here] BindingList[+In, ?Yield, +Await] `;`
+        [+Await] `async` [no LineTerminator here] AsyncArrowBindingIdentifier[?Yield] [no LineTerminator here] BindingList[?In, ?Yield, +Await] `;`
       </ins>
 
       CoverCallExpressionAndAsyncArrowHead[Yield, Await] :
@@ -4033,7 +4074,19 @@ contributors: Ron Buckton, Ecma International
         1. Return *false*.
       </emu-alg>
 
-      <emu-grammar>LexicalDeclaration : UsingDeclaration</emu-grammar>
+      <emu-grammar>LexicalDeclaration : CoverAsyncUsingDeclarationAndAsyncArrowIdentifierHead</emu-grammar>
+      <emu-alg>
+        1. Let _decl_ be the |AsyncUsingDeclaration| covered by |CoverAsyncUsingDeclarationAndAsyncArrowIdentifierHead|.
+        1. Return HasUnterminatedUsingDeclaration of _decl_.
+      </emu-alg>
+
+      <emu-grammar>
+        UsingDeclaration :
+          `using` BindingList `;`
+
+        AsyncUsingDeclaration :
+          `async` `using` BindingList `;`
+      </emu-grammar>
       <emu-alg>
         1. Return *true*.
       </emu-alg>
