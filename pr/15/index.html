@@ -5788,8 +5788,8 @@ li.menu-search-result-term:before {
     <h2>Supplemental Syntax</h2>
     <p>
       When processing an instance of the production<br>
-      <emu-grammar><emu-production name="UnaryExpression" params="Yield, Await" collapsed="" class=" inline">
-    <emu-nt params="Yield, Await"><a href="#prod-UnaryExpression">UnaryExpression</a><emu-mods><emu-params>[Yield, Await]</emu-params></emu-mods></emu-nt> <emu-geq>:</emu-geq> <emu-rhs a="k0u1op4i" constraints="+Await"><emu-constraints>[+Await]</emu-constraints><emu-nt params="?Yield" id="_ref_397"><a href="#prod-CoverAwaitExpressionAndAwaitUsingDeclarationHead">CoverAwaitExpressionAndAwaitUsingDeclarationHead</a><emu-mods><emu-params>[?Yield]</emu-params></emu-mods></emu-nt></emu-rhs>
+      <emu-grammar><emu-production name="UnaryExpression" collapsed="" class=" inline">
+    <emu-nt><a href="#prod-UnaryExpression">UnaryExpression</a></emu-nt> <emu-geq>:</emu-geq> <emu-rhs a="uwdc-jof"><emu-nt id="_ref_397"><a href="#prod-CoverAwaitExpressionAndAwaitUsingDeclarationHead">CoverAwaitExpressionAndAwaitUsingDeclarationHead</a></emu-nt></emu-rhs>
 </emu-production>
 </emu-grammar><br>
       the interpretation of <emu-nt id="_ref_398"><a href="#prod-CoverAwaitExpressionAndAwaitUsingDeclarationHead">CoverAwaitExpressionAndAwaitUsingDeclarationHead</a></emu-nt> is refined using the following grammar:
@@ -5916,12 +5916,10 @@ li.menu-search-result-term:before {
       <h2>Supplemental Syntax</h2>
       <p>
         When processing an instance of the production<br>
-        <emu-grammar><emu-production name="AwaitUsingDeclaration" params="In, Yield" collapsed="" class=" inline">
-    <emu-nt params="In, Yield"><a href="#prod-AwaitUsingDeclaration">AwaitUsingDeclaration</a><emu-mods><emu-params>[In, Yield]</emu-params></emu-mods></emu-nt> <emu-geq>:</emu-geq> <emu-rhs a="jjzqi861">
-        <emu-nt params="?Yield" id="_ref_411"><a href="#prod-CoverAwaitExpressionAndAwaitUsingDeclarationHead">CoverAwaitExpressionAndAwaitUsingDeclarationHead</a><emu-mods><emu-params>[?Yield]</emu-params></emu-mods></emu-nt>
-        <emu-gann>[no <emu-nt><a href="https://tc39.es/ecma262/#prod-LineTerminator">LineTerminator</a></emu-nt> here]</emu-gann>
-        <emu-gann>[lookahead ≠ <emu-t>await</emu-t>]</emu-gann>
-        <emu-nt params="?In, ?Yield, ?Await, ~Pattern" id="_ref_412"><a href="#prod-BindingList">BindingList</a><emu-mods><emu-params>[?In, ?Yield, ?Await, ~Pattern]</emu-params></emu-mods></emu-nt>
+        <emu-grammar><emu-production name="AwaitUsingDeclaration" collapsed="" class=" inline">
+    <emu-nt><a href="#prod-AwaitUsingDeclaration">AwaitUsingDeclaration</a></emu-nt> <emu-geq>:</emu-geq> <emu-rhs a="qmq3opks">
+        <emu-nt id="_ref_411"><a href="#prod-CoverAwaitExpressionAndAwaitUsingDeclarationHead">CoverAwaitExpressionAndAwaitUsingDeclarationHead</a></emu-nt>
+        <emu-nt id="_ref_412"><a href="#prod-BindingList">BindingList</a></emu-nt>
         <emu-t>;</emu-t>
     </emu-rhs>
 </emu-production>
