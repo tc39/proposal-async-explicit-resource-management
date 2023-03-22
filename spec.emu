@@ -1149,17 +1149,12 @@ contributors: Ron Buckton, Ecma International
         1. Return the BoundNames of |BindingList|.
       </emu-alg>
       <ins class="block">
-      <emu-grammar>LexicalDeclaration : CoverAwaitExpressionAndAwaitUsingDeclaration</emu-grammar>
-      <emu-alg>
-        1. Let _decl_ be the |AwaitUsingDeclaration| that is covered by |CoverAwaitExpressionAndAwaitUsingDeclaration|.
-        1. Return the BoundNames of _decl_.
-      </emu-alg>
       <emu-grammar>
         UsingDeclaration :
           `using` BindingList `;`
 
         AwaitUsingDeclaration :
-          `await` `using` BindingList `;`
+          CoverAwaitExpressionAndAwaitUsingDeclarationHead BindingList `;`
       </emu-grammar>
       <emu-alg>
         1. Return the BoundNames of |BindingList|.
@@ -1401,13 +1396,6 @@ contributors: Ron Buckton, Ecma International
       <emu-alg>
         1. Return IsConstantDeclaration of |LetOrConst|.
       </emu-alg>
-      <ins class="block">
-      <emu-grammar>LexicalDeclaration : CoverAwaitExpressionAndAwaitUsingDeclaration</emu-grammar>
-      <emu-alg>
-        1. Let _decl_ be the |AwaitUsingDeclaration| that is covered by |CoverAwaitExpressionAndAwaitUsingDeclaration|.
-        1. Return IsConstantDeclaration of _decl_.
-      </emu-alg>
-      </ins>
       <emu-grammar>LetOrConst : `let`</emu-grammar>
       <emu-alg>
         1. Return *false*.
@@ -1422,7 +1410,7 @@ contributors: Ron Buckton, Ecma International
           `using` BindingList `;`
 
         AwaitUsingDeclaration :
-          `await` `using` BindingList `;`
+          CoverAwaitExpressionAndAwaitUsingDeclarationHead BindingList `;`
       </emu-grammar>
       <emu-alg>
         1. Return *true*.
@@ -1479,17 +1467,12 @@ contributors: Ron Buckton, Ecma International
       <emu-alg>
         1. Return *false*.
       </emu-alg>
-      <emu-grammar>LexicalDeclaration : CoverAwaitExpressionAndAwaitUsingDeclaration</emu-grammar>
-      <emu-alg>
-        1. Let _decl_ be the |AwaitUsingDeclaration| that is covered by |CoverAwaitExpressionAndAwaitUsingDeclaration|.
-        1. Return IsUsingDeclaration of _decl_.
-      </emu-alg>
       <emu-grammar>
         UsingDeclaration :
           `using` BindingList `;`
 
         AwaitUsingDeclaration :
-          `await` `using` BindingList `;`
+          CoverAwaitExpressionAndAwaitUsingDeclarationHead BindingList `;`
       </emu-grammar>
       <emu-alg>
         1. Return *true*.
@@ -1553,16 +1536,11 @@ contributors: Ron Buckton, Ecma International
       <emu-alg>
         1. Return *false*.
       </emu-alg>
-      <emu-grammar>LexicalDeclaration : CoverAwaitExpressionAndAwaitUsingDeclaration</emu-grammar>
-      <emu-alg>
-        1. Let _decl_ be the |AwaitUsingDeclaration| that is covered by |CoverAwaitExpressionAndAwaitUsingDeclaration|.
-        1. Return IsAwaitUsingDeclaration of _decl_.
-      </emu-alg>
       <emu-grammar>UsingDeclaration : `using` BindingList `;`</emu-grammar>
       <emu-alg>
         1. Return *false*.
       </emu-alg>
-      <emu-grammar>AwaitUsingDeclaration : `await` `using` BindingList `;`</emu-grammar>
+      <emu-grammar>AwaitUsingDeclaration : CoverAwaitExpressionAndAwaitUsingDeclarationHead BindingList `;`</emu-grammar>
       <emu-alg>
         1. Return *true*.
       </emu-alg>
@@ -1671,7 +1649,7 @@ contributors: Ron Buckton, Ecma International
           `~` UnaryExpression
           `!` UnaryExpression
           <del>AwaitExpression</del>
-          <ins>CoverAwaitExpressionAndAwaitUsingDeclaration</ins>
+          <ins>CoverAwaitExpressionAndAwaitUsingDeclarationHead</ins>
 
         <ins class="block">
         AwaitExpression :
@@ -2038,7 +2016,7 @@ contributors: Ron Buckton, Ecma International
           `~` UnaryExpression
           `!` UnaryExpression
           <del>AwaitExpression</del>
-          <ins>CoverAwaitExpressionAndAwaitUsingDeclaration</ins>
+          <ins>CoverAwaitExpressionAndAwaitUsingDeclarationHead</ins>
 
         <ins class="block">
         AwaitExpression :
@@ -2475,20 +2453,19 @@ contributors: Ron Buckton, Ecma International
         `~` UnaryExpression[?Yield, ?Await]
         `!` UnaryExpression[?Yield, ?Await]
         <del>[+Await] AwaitExpression[?Yield]</del>
-        <ins>[+Await] CoverAwaitExpressionAndAwaitUsingDeclaration[+In, ?Yield]</ins>
+        <ins>[+Await] CoverAwaitExpressionAndAwaitUsingDeclarationHead[?Yield]</ins>
 
       <ins class="block">
-        CoverAwaitExpressionAndAwaitUsingDeclaration[In, Yield] :
-          `await` UnaryExpression[Yield, +Await]
-          `await` UnaryExpression[Yield, +Await] [no LineTerminator here] BindingList[?In, ?Yield, +Await, ~Pattern] `;`
+        CoverAwaitExpressionAndAwaitUsingDeclarationHead[Yield] :
+          `await` UnaryExpression[?Yield, +Await]
       </ins>
     </emu-grammar>
     <ins class="block">
     <h2>Supplemental Syntax</h2>
     <p>
       When processing an instance of the production<br>
-      <emu-grammar>UnaryExpression[Yield, Await] : [+Await] CoverAwaitExpressionAndAwaitUsingDeclaration[+In, ?Yield]</emu-grammar><br>
-      the interpretation of |CoverAwaitExpressionAndAwaitUsingDeclaration| is refined using the following grammar:
+      <emu-grammar>UnaryExpression[Yield, Await] : [+Await] CoverAwaitExpressionAndAwaitUsingDeclarationHead[?Yield]</emu-grammar><br>
+      the interpretation of |CoverAwaitExpressionAndAwaitUsingDeclarationHead| is refined using the following grammar:
     </p>
     <emu-grammar>
       AwaitExpression[?Yield] :
@@ -2567,7 +2544,7 @@ contributors: Ron Buckton, Ecma International
         LexicalDeclaration[In, Yield, Await] :
           LetOrConst BindingList[?In, ?Yield, ?Await, <ins>+Pattern</ins>] `;`
           <ins>UsingDeclaration[?In, ?Yield, ?Await]</ins>
-          <ins>[+Await] CoverAwaitExpressionAndAwaitUsingDeclaration[?In, ?Yield]</ins>
+          <ins>[+Await] AwaitUsingDeclaration[?In, ?Yield]</ins>
 
         LetOrConst :
           `let`
@@ -2576,6 +2553,9 @@ contributors: Ron Buckton, Ecma International
         <ins class="block">
         UsingDeclaration[In, Yield, Await] :
           `using` [no LineTerminator here] [lookahead != `await`] BindingList[?In, ?Yield, ?Await, ~Pattern] `;`
+
+        AwaitUsingDeclaration[In, Yield] :
+          CoverAwaitExpressionAndAwaitUsingDeclarationHead[?Yield] [no LineTerminator here] [lookahead != `await`] BindingList[?In, ?Yield, ?Await, ~Pattern] `;`
         </ins>
 
         BindingList[In, Yield, Await, <ins>Pattern</ins>] :
@@ -2592,24 +2572,18 @@ contributors: Ron Buckton, Ecma International
       <h2>Supplemental Syntax</h2>
       <p>
         When processing an instance of the production<br>
-        <emu-grammar>LexicalDeclaration[In, Yield, Await] : [+Await] CoverAwaitExpressionAndAwaitUsingDeclaration[?In, ?Yield]</emu-grammar><br>
-        the interpretation of |CoverAwaitExpressionAndAwaitUsingDeclaration| is refined using the following grammar:
+        <emu-grammar>AwaitUsingDeclaration[In, Yield] : CoverAwaitExpressionAndAwaitUsingDeclarationHead[?Yield] [no LineTerminator here] [lookahead != `await`] BindingList[?In, ?Yield, ?Await, ~Pattern] `;`</emu-grammar><br>
+        the interpretation of |CoverAwaitExpressionAndAwaitUsingDeclarationHead| is refined using the following grammar:
       </p>
       <emu-grammar type="definition">
-        AwaitUsingDeclaration[?In, ?Yield] :
-          `await` [no LineTerminator here] `using` [no LineTerminator here] BindingList[?In, ?Yield, +Await, ~Pattern] `;`
+        AwaitUsingDeclarationHead :
+          `await` [no LineTerminator here] `using`
         </emu-grammar>
       </ins>
-  
+
       <emu-clause id="sec-let-and-const-declarations-static-semantics-early-errors">
         <h1>Static Semantics: Early Errors</h1>
         <ins class="block">
-        <emu-grammar>
-          LexicalDeclaration : CoverAwaitExpressionAndAwaitUsingDeclaration
-        </emu-grammar>
-        <ul>
-          <li>|CoverAwaitExpressionAndAwaitUsingDeclaration| must cover an |AwaitUsingDeclaration|.</li>
-        </ul>
         <emu-grammar>
           UsingDeclaration :
             `using` BindingList `;`
@@ -2630,9 +2604,10 @@ contributors: Ron Buckton, Ecma International
         </ul>
         <emu-grammar>
           AwaitUsingDeclaration :
-            `await` `using` BindingList `;`
+            CoverAwaitExpressionAndAwaitUsingDeclarationHead BindingList `;`
         </emu-grammar>
         <ul>
+          <li>|CoverAwaitExpressionAndAwaitUsingDeclarationHead| must cover an |AwaitUsingDeclarationHead|.</li>
           <li>
             It is a Syntax Error if the BoundNames of |BindingList| contains *"let"*.
           </li>
@@ -2667,28 +2642,18 @@ contributors: Ron Buckton, Ecma International
           1. Perform ? <del>Evaluation</del><ins>BindingEvaluation</ins> of |BindingList|<ins> with parameter ~normal~</ins>.
           1. Return ~empty~.
         </emu-alg>
-
         <ins class="block">
-        <emu-grammar>LexicalDeclaration : CoverAwaitExpressionAndAwaitUsingDeclaration</emu-grammar>
-        <emu-alg>
-          1. Let _decl_ be the |AwaitUsingDeclaration| covered by |CoverAwaitExpressionAndAwaitUsingDeclaration|.
-          1. Perform ? Evaluation of _decl_.
-          1. Return ~empty~.
-        </emu-alg>
-
         <emu-grammar>UsingDeclaration : `using` BindingList `;`</emu-grammar>
         <emu-alg>
           1. Perform ? BindingEvaluation of |BindingList| with parameter ~sync-dispose~.
           1. Return ~empty~.
         </emu-alg>
-
-        <emu-grammar>AwaitUsingDeclaration : `await` `using` BindingList `;`</emu-grammar>
+        <emu-grammar>AwaitUsingDeclaration : CoverAwaitExpressionAndAwaitUsingDeclarationHead BindingList `;`</emu-grammar>
         <emu-alg>
           1. Perform ? BindingEvaluation of |BindingList| with parameter ~async-dispose~.
           1. Return ~empty~.
         </emu-alg>
         </ins>
-
         <del class="block">
         <emu-grammar>BindingList : BindingList `,` LexicalBinding</emu-grammar>
         <emu-alg>
@@ -3414,10 +3379,10 @@ contributors: Ron Buckton, Ecma International
       <h1>Static Semantics: Early Errors</h1>
       <ins class="block">
         <emu-grammar>
-          UnaryExpression : CoverAwaitExpressionAndAwaitUsingDeclaration
+          UnaryExpression : CoverAwaitExpressionAndAwaitUsingDeclarationHead
         </emu-grammar>
         <ul>
-          <li>|CoverAwaitExpressionAndAwaitUsingDeclaration| must cover an |AwaitExpression|.</li>
+          <li>|CoverAwaitExpressionAndAwaitUsingDeclarationHead| must cover an |AwaitExpression|.</li>
         </ul>
       </ins>
     </emu-clause>
@@ -3467,10 +3432,10 @@ contributors: Ron Buckton, Ecma International
       <h1>Runtime Semantics: Evaluation</h1>
       <ins class="block">
       <emu-grammar>
-        UnaryExpression : CoverAwaitExpressionAndAwaitUsingDeclaration
+        UnaryExpression : CoverAwaitExpressionAndAwaitUsingDeclarationHead
       </emu-grammar>
       <emu-alg>
-        1. Let _expr_ be the |AwaitExpression| that is covered by |CoverAwaitExpressionAndAwaitUsingDeclaration|.
+        1. Let _expr_ be the |AwaitExpression| that is covered by |CoverAwaitExpressionAndAwaitUsingDeclarationHead|.
         1. Return ? Evaluation of _expr_.
       </emu-alg>
       </ins>
@@ -3698,7 +3663,7 @@ contributors: Ron Buckton, Ecma International
           `~` UnaryExpression
           `!` UnaryExpression
           <del>AwaitExpression</del>
-          <ins>CoverAwaitExpressionAndAwaitUsingDeclaration</ins>
+          <ins>CoverAwaitExpressionAndAwaitUsingDeclarationHead</ins>
 
         <ins class="block">
         AwaitExpression :
@@ -3858,18 +3823,13 @@ contributors: Ron Buckton, Ecma International
         1. Return *false*.
       </emu-alg>
 
-      <emu-grammar>LexicalDeclaration : CoverAwaitExpressionAndAwaitUsingDeclaration</emu-grammar>
-      <emu-alg>
-        1. Let _decl_ be the |AwaitUsingDeclaration| covered by |CoverAwaitExpressionAndAwaitUsingDeclaration|.
-        1. Return HasUnterminatedUsingDeclaration of _decl_.
-      </emu-alg>
+      <emu-grammar>
+        UsingDeclaration :
+          `using` BindingList `;`
 
-      <emu-grammar>UsingDeclaration : `using` BindingList `;`</emu-grammar>
-      <emu-alg>
-        1. Return *true*.
-      </emu-alg>
-
-      <emu-grammar>AwaitUsingDeclaration : `await` `using` BindingList `;`</emu-grammar>
+        AwaitUsingDeclaration :
+          CoverAwaitExpressionAndAwaitUsingDeclarationHead BindingList `;`
+      </emu-grammar>
       <emu-alg>
         1. Return *true*.
       </emu-alg>
