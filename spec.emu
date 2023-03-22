@@ -2673,6 +2673,7 @@ contributors: Ron Buckton, Ecma International
         <emu-alg>
           1. Let _decl_ be the |AwaitUsingDeclaration| covered by |CoverAwaitExpressionAndAwaitUsingDeclaration|.
           1. Perform ? Evaluation of _decl_.
+          1. Return ~empty~.
         </emu-alg>
 
         <emu-grammar>UsingDeclaration : `using` BindingList `;`</emu-grammar>
