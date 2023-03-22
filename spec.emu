@@ -1311,6 +1311,17 @@ contributors: Ron Buckton, Ecma International
       <emu-alg>
         1. Return &laquo; *"\*default\*"* &raquo;.
       </emu-alg>
+      <ins class="block">
+      <emu-grammar>
+        CoverAsyncUsingDeclarationAndAsyncArrowIdentifierHead :
+          `async` AsyncArrowBindingIdentifier
+          `async` AsyncArrowBindingIdentifier BindingList
+      </emu-grammar>
+      <emu-alg>
+        1. Let _head_ be the |AsyncArrowIdentifierHead| that is covered by |CoverAsyncUsingDeclarationAndAsyncArrowIdentifierHead|.
+        1. Return the BoundNames of _head_.
+      </emu-alg>
+      </ins>
       <emu-grammar>
         CoverCallExpressionAndAsyncArrowHead : MemberExpression Arguments
       </emu-grammar>
@@ -1460,9 +1471,8 @@ contributors: Ron Buckton, Ecma International
         1. Return *false*.
       </emu-alg>
       <emu-grammar>
-        UsingDeclaration :
-          `using` BindingList `;`
-          `using` `await` BindingList `;`
+        UsingDeclaration : `using` BindingList `;`
+        AsyncUsingDeclaration : `async` `using` BindingList `;`
       </emu-grammar>
       <emu-alg>
         1. Return *true*.
@@ -1474,7 +1484,7 @@ contributors: Ron Buckton, Ecma International
       <emu-grammar>
         ForDeclaration :
           `using` ForBinding
-          `using` `await` ForBinding
+          `async` `using` ForBinding
       </emu-grammar>
       <emu-alg>
         1. Return *true*.
@@ -1518,8 +1528,8 @@ contributors: Ron Buckton, Ecma International
       </emu-alg>
     </emu-clause>
 
-    <emu-clause id="sec-static-semantics-isusingawaitdeclaration" type="sdo">
-      <h1>Static Semantics: IsUsingAwaitDeclaration ( ): a Boolean</h1>
+    <emu-clause id="sec-static-semantics-isasyncusingdeclaration" type="sdo">
+      <h1>Static Semantics: IsAsyncUsingDeclaration ( ): a Boolean</h1>
       <dl class="header">
       </dl>
       <emu-grammar>LexicalDeclaration : LetOrConst BindingList `;`</emu-grammar>
@@ -1530,7 +1540,7 @@ contributors: Ron Buckton, Ecma International
       <emu-alg>
         1. Return *false*.
       </emu-alg>
-      <emu-grammar>UsingDeclaration : `using` `await` BindingList `;`</emu-grammar>
+      <emu-grammar>AsyncUsingDeclaration : `async` `using` BindingList `;`</emu-grammar>
       <emu-alg>
         1. Return *true*.
       </emu-alg>
@@ -1542,7 +1552,7 @@ contributors: Ron Buckton, Ecma International
       <emu-alg>
         1. Return *false*.
       </emu-alg>
-      <emu-grammar>ForDeclaration : `using` `await` ForBinding</emu-grammar>
+      <emu-grammar>ForDeclaration : `async` `using` ForBinding</emu-grammar>
       <emu-alg>
         1. Return *true*.
       </emu-alg>
@@ -1585,6 +1595,268 @@ contributors: Ron Buckton, Ecma International
       </emu-alg>
     </emu-clause>
     </ins>
+  </emu-clause>
+
+  <emu-clause id="sec-syntax-directed-operations-function-name-inference">
+    <h1>Function Name Inference</h1>
+
+    <emu-clause id="sec-static-semantics-hasname" oldids="sec-semantics-static-semantics-hasname,sec-function-definitions-static-semantics-hasname,sec-arrow-function-definitions-static-semantics-hasname,sec-generator-function-definitions-static-semantics-hasname,sec-async-generator-function-definitions-static-semantics-hasname,sec-class-definitions-static-semantics-hasname,sec-async-function-definitions-static-semantics-HasName,sec-async-arrow-function-definitions-static-semantics-HasName" type="sdo">
+      <h1>Static Semantics: HasName ( ): a Boolean</h1>
+      <dl class="header">
+      </dl>
+      <emu-grammar>PrimaryExpression : CoverParenthesizedExpressionAndArrowParameterList</emu-grammar>
+      <emu-alg>
+        1. Let _expr_ be the |ParenthesizedExpression| that is covered by |CoverParenthesizedExpressionAndArrowParameterList|.
+        1. If IsFunctionDefinition of _expr_ is *false*, return *false*.
+        1. Return HasName of _expr_.
+      </emu-alg>
+      <emu-grammar>
+        FunctionExpression :
+          `function` `(` FormalParameters `)` `{` FunctionBody `}`
+
+        GeneratorExpression :
+          `function` `*` `(` FormalParameters `)` `{` GeneratorBody `}`
+
+        AsyncGeneratorExpression :
+          `async` `function` `*` `(` FormalParameters `)` `{` AsyncGeneratorBody `}`
+
+        AsyncFunctionExpression :
+          `async` `function` `(` FormalParameters `)` `{` AsyncFunctionBody `}`
+
+        ArrowFunction :
+          ArrowParameters `=>` ConciseBody
+
+        AsyncArrowFunction :
+          <del>`async` AsyncArrowBindingIdentifier `=>` AsyncConciseBody</del>
+          <ins>CoverAsyncUsingDeclarationAndAsyncArrowIdentifierHead `=>` AsyncConciseBody</ins>
+          CoverCallExpressionAndAsyncArrowHead `=>` AsyncConciseBody
+
+        ClassExpression :
+          `class` ClassTail
+      </emu-grammar>
+      <emu-alg>
+        1. Return *false*.
+      </emu-alg>
+      <emu-grammar>
+        FunctionExpression :
+          `function` BindingIdentifier `(` FormalParameters `)` `{` FunctionBody `}`
+
+        GeneratorExpression :
+          `function` `*` BindingIdentifier `(` FormalParameters `)` `{` GeneratorBody `}`
+
+        AsyncGeneratorExpression :
+          `async` `function` `*` BindingIdentifier `(` FormalParameters `)` `{` AsyncGeneratorBody `}`
+
+        AsyncFunctionExpression :
+          `async` `function` BindingIdentifier `(` FormalParameters `)` `{` AsyncFunctionBody `}`
+
+        ClassExpression :
+          `class` BindingIdentifier ClassTail
+      </emu-grammar>
+      <emu-alg>
+        1. Return *true*.
+      </emu-alg>
+    </emu-clause>
+
+    <emu-clause id="sec-runtime-semantics-namedevaluation" oldids="sec-grouping-operator-runtime-semantics-namedevaluation,sec-function-definitions-runtime-semantics-namedevaluation,sec-arrow-function-definitions-runtime-semantics-namedevaluation,sec-generator-function-definitions-runtime-semantics-namedevaluation,sec-asyncgenerator-definitions-namedevaluation,sec-class-definitions-runtime-semantics-namedevaluation,sec-async-function-definitions-runtime-semantics-namedevaluation,sec-async-arrow-function-definitions-runtime-semantics-namedevaluation" type="sdo">
+      <h1>
+        Runtime Semantics: NamedEvaluation (
+          _name_: a property key or a Private Name,
+        ): either a normal completion containing a function object or an abrupt completion
+      </h1>
+      <dl class="header">
+      </dl>
+      <emu-grammar>PrimaryExpression : CoverParenthesizedExpressionAndArrowParameterList</emu-grammar>
+      <emu-alg>
+        1. Let _expr_ be the |ParenthesizedExpression| that is covered by |CoverParenthesizedExpressionAndArrowParameterList|.
+        1. Return ? NamedEvaluation of _expr_ with argument _name_.
+      </emu-alg>
+      <emu-grammar>ParenthesizedExpression : `(` Expression `)`</emu-grammar>
+      <emu-alg>
+        1. Assert: IsAnonymousFunctionDefinition(|Expression|) is *true*.
+        1. Return ? NamedEvaluation of |Expression| with argument _name_.
+      </emu-alg>
+      <emu-grammar>FunctionExpression : `function` `(` FormalParameters `)` `{` FunctionBody `}`</emu-grammar>
+      <emu-alg>
+        1. Return InstantiateOrdinaryFunctionExpression of |FunctionExpression| with argument _name_.
+      </emu-alg>
+      <emu-grammar>GeneratorExpression : `function` `*` `(` FormalParameters `)` `{` GeneratorBody `}`</emu-grammar>
+      <emu-alg>
+        1. Return InstantiateGeneratorFunctionExpression of |GeneratorExpression| with argument _name_.
+      </emu-alg>
+      <emu-grammar>
+        AsyncGeneratorExpression : `async` `function` `*` `(` FormalParameters `)` `{` AsyncGeneratorBody `}`
+      </emu-grammar>
+      <emu-alg>
+        1. Return InstantiateAsyncGeneratorFunctionExpression of |AsyncGeneratorExpression| with argument _name_.
+      </emu-alg>
+      <emu-grammar>
+        AsyncFunctionExpression : `async` `function` `(` FormalParameters `)` `{` AsyncFunctionBody `}`
+      </emu-grammar>
+      <emu-alg>
+        1. Return InstantiateAsyncFunctionExpression of |AsyncFunctionExpression| with argument _name_.
+      </emu-alg>
+      <emu-grammar>ArrowFunction : ArrowParameters `=>` ConciseBody</emu-grammar>
+      <emu-alg>
+        1. Return InstantiateArrowFunctionExpression of |ArrowFunction| with argument _name_.
+      </emu-alg>
+      <emu-grammar>
+        AsyncArrowFunction :
+          <del>`async` AsyncArrowBindingIdentifier `=>` AsyncConciseBody</del>
+          <ins>CoverAsyncUsingDeclarationAndAsyncArrowIdentifierHead `=>` AsyncConciseBody</ins>
+          CoverCallExpressionAndAsyncArrowHead `=>` AsyncConciseBody
+      </emu-grammar>
+      <emu-alg>
+        1. Return InstantiateAsyncArrowFunctionExpression of |AsyncArrowFunction| with argument _name_.
+      </emu-alg>
+      <emu-grammar>ClassExpression : `class` ClassTail</emu-grammar>
+      <emu-alg>
+        1. Let _value_ be ? ClassDefinitionEvaluation of |ClassTail| with arguments *undefined* and _name_.
+        1. Set _value_.[[SourceText]] to the source text matched by |ClassExpression|.
+        1. Return _value_.
+      </emu-alg>
+    </emu-clause>
+  </emu-clause>
+
+  <emu-clause id="sec-syntax-directed-operations-contains">
+    <h1>Contains</h1>
+
+    <emu-clause id="sec-static-semantics-contains" oldids="sec-object-initializer-static-semantics-contains,sec-static-semantics-static-semantics-contains,sec-function-definitions-static-semantics-contains,sec-arrow-function-definitions-static-semantics-contains,sec-generator-function-definitions-static-semantics-contains,sec-async-generator-function-definitions-static-semantics-contains,sec-class-definitions-static-semantics-contains,sec-async-function-definitions-static-semantics-Contains,sec-async-arrow-function-definitions-static-semantics-Contains" type="sdo">
+      <h1>
+        Static Semantics: Contains (
+          _symbol_: a grammar symbol,
+        ): a Boolean
+      </h1>
+      <dl class="header">
+      </dl>
+      <p>Every grammar production alternative in this specification which is not listed below implicitly has the following default definition of Contains:</p>
+      <emu-alg>
+        1. For each child node _child_ of this Parse Node, do
+          1. If _child_ is an instance of _symbol_, return *true*.
+          1. If _child_ is an instance of a nonterminal, then
+            1. Let _contained_ be the result of _child_ Contains _symbol_.
+            1. If _contained_ is *true*, return *true*.
+        1. Return *false*.
+      </emu-alg>
+      <emu-grammar>
+        FunctionDeclaration :
+          `function` BindingIdentifier `(` FormalParameters `)` `{` FunctionBody `}`
+          `function` `(` FormalParameters `)` `{` FunctionBody `}`
+
+        FunctionExpression :
+          `function` BindingIdentifier? `(` FormalParameters `)` `{` FunctionBody `}`
+
+        GeneratorDeclaration :
+          `function` `*` BindingIdentifier `(` FormalParameters `)` `{` GeneratorBody `}`
+          `function` `*` `(` FormalParameters `)` `{` GeneratorBody `}`
+
+        GeneratorExpression :
+          `function` `*` BindingIdentifier? `(` FormalParameters `)` `{` GeneratorBody `}`
+
+        AsyncGeneratorDeclaration :
+          `async` `function` `*` BindingIdentifier `(` FormalParameters `)` `{` AsyncGeneratorBody `}`
+          `async` `function` `*` `(` FormalParameters `)` `{` AsyncGeneratorBody `}`
+
+        AsyncGeneratorExpression :
+          `async` `function` `*` BindingIdentifier? `(` FormalParameters `)` `{` AsyncGeneratorBody `}`
+
+        AsyncFunctionDeclaration :
+          `async` `function` BindingIdentifier `(` FormalParameters `)` `{` AsyncFunctionBody `}`
+          `async` `function` `(` FormalParameters `)` `{` AsyncFunctionBody `}`
+
+        AsyncFunctionExpression :
+          `async` `function` BindingIdentifier? `(` FormalParameters `)` `{` AsyncFunctionBody `}`
+      </emu-grammar>
+      <emu-alg>
+        1. Return *false*.
+      </emu-alg>
+      <emu-note>
+        <p>Static semantic rules that depend upon substructure generally do not look into function definitions.</p>
+      </emu-note>
+      <emu-grammar>ClassTail : ClassHeritage? `{` ClassBody `}`</emu-grammar>
+      <emu-alg>
+        1. If _symbol_ is |ClassBody|, return *true*.
+        1. If _symbol_ is |ClassHeritage|, then
+          1. If |ClassHeritage| is present, return *true*; otherwise return *false*.
+        1. If |ClassHeritage| is present, then
+          1. If |ClassHeritage| Contains _symbol_ is *true*, return *true*.
+        1. Return the result of ComputedPropertyContains of |ClassBody| with argument _symbol_.
+      </emu-alg>
+      <emu-note>
+        <p>Static semantic rules that depend upon substructure generally do not look into class bodies except for |PropertyName|s.</p>
+      </emu-note>
+      <emu-grammar>ClassStaticBlock : `static` `{` ClassStaticBlockBody `}`</emu-grammar>
+      <emu-alg>
+        1. Return *false*.
+      </emu-alg>
+      <emu-note>
+        <p>Static semantic rules that depend upon substructure generally do not look into `static` initialization blocks.</p>
+      </emu-note>
+      <emu-grammar>ArrowFunction : ArrowParameters `=>` ConciseBody</emu-grammar>
+      <emu-alg>
+        1. If _symbol_ is not one of |NewTarget|, |SuperProperty|, |SuperCall|, `super` or `this`, return *false*.
+        1. If |ArrowParameters| Contains _symbol_ is *true*, return *true*.
+        1. Return |ConciseBody| Contains _symbol_.
+      </emu-alg>
+      <emu-grammar>ArrowParameters : CoverParenthesizedExpressionAndArrowParameterList</emu-grammar>
+      <emu-alg>
+        1. Let _formals_ be the |ArrowFormalParameters| that is covered by |CoverParenthesizedExpressionAndArrowParameterList|.
+        1. Return _formals_ Contains _symbol_.
+      </emu-alg>
+      <emu-grammar>
+        <del>AsyncArrowFunction : `async` AsyncArrowBindingIdentifier `=>` AsyncConciseBody</del>
+        <ins>AsyncArrowFunction : CoverAsyncUsingDeclarationAndAsyncArrowIdentifierHead `=>` AsyncConciseBody</ins>
+      </emu-grammar>
+      <emu-alg>
+        1. If _symbol_ is not one of |NewTarget|, |SuperProperty|, |SuperCall|, `super`, or `this`, return *false*.
+        1. Return |AsyncConciseBody| Contains _symbol_.
+      </emu-alg>
+      <emu-grammar>
+        AsyncArrowFunction : CoverCallExpressionAndAsyncArrowHead `=>` AsyncConciseBody
+      </emu-grammar>
+      <emu-alg>
+        1. If _symbol_ is not one of |NewTarget|, |SuperProperty|, |SuperCall|, `super`, or `this`, return *false*.
+        1. Let _head_ be the |AsyncArrowHead| that is covered by |CoverCallExpressionAndAsyncArrowHead|.
+        1. If _head_ Contains _symbol_ is *true*, return *true*.
+        1. Return |AsyncConciseBody| Contains _symbol_.
+      </emu-alg>
+      <emu-note>
+        <p>Contains is used to detect `new.target`, `this`, and `super` usage within an |ArrowFunction| or |AsyncArrowFunction|.</p>
+      </emu-note>
+      <emu-grammar>PropertyDefinition : MethodDefinition</emu-grammar>
+      <emu-alg>
+        1. If _symbol_ is |MethodDefinition|, return *true*.
+        1. Return the result of ComputedPropertyContains of |MethodDefinition| with argument _symbol_.
+      </emu-alg>
+      <emu-grammar>LiteralPropertyName : IdentifierName</emu-grammar>
+      <emu-alg>
+        1. Return *false*.
+      </emu-alg>
+      <emu-grammar>MemberExpression : MemberExpression `.` IdentifierName</emu-grammar>
+      <emu-alg>
+        1. If |MemberExpression| Contains _symbol_ is *true*, return *true*.
+        1. Return *false*.
+      </emu-alg>
+      <emu-grammar>SuperProperty : `super` `.` IdentifierName</emu-grammar>
+      <emu-alg>
+        1. If _symbol_ is the |ReservedWord| `super`, return *true*.
+        1. Return *false*.
+      </emu-alg>
+      <emu-grammar>CallExpression : CallExpression `.` IdentifierName</emu-grammar>
+      <emu-alg>
+        1. If |CallExpression| Contains _symbol_ is *true*, return *true*.
+        1. Return *false*.
+      </emu-alg>
+      <emu-grammar>OptionalChain : `?.` IdentifierName</emu-grammar>
+      <emu-alg>
+        1. Return *false*.
+      </emu-alg>
+      <emu-grammar>OptionalChain : OptionalChain `.` IdentifierName</emu-grammar>
+      <emu-alg>
+        1. If |OptionalChain| Contains _symbol_ is *true*, return *true*.
+        1. Return *false*.
+      </emu-alg>
+    </emu-clause>
   </emu-clause>
 
   <emu-clause id="sec-syntax-directed-operations-miscellaneous">
@@ -2112,6 +2384,138 @@ contributors: Ron Buckton, Ecma International
   </emu-clause>
 </emu-clause>
 
+<emu-clause id="sec-ecmascript-language-lexical-grammar">
+  <h1>ECMAScript Language: Lexical Grammar</h1>
+
+  <emu-clause id="sec-automatic-semicolon-insertion">
+    <h1>Automatic Semicolon Insertion</h1>
+
+    <emu-clause id="sec-rules-of-automatic-semicolon-insertion" namespace="asi-rules">
+      <h1>Rules of Automatic Semicolon Insertion</h1>
+      <p>In the following rules, “token” means the actual recognized lexical token determined using the current lexical goal symbol as described in clause <emu-xref href="#sec-ecmascript-language-lexical-grammar"></emu-xref>.</p>
+      <p>There are three basic rules of semicolon insertion:</p>
+      <ol>
+        <li>
+          <p>When, as the source text is parsed from left to right, a token (called the <em>offending token</em>) is encountered that is not allowed by any production of the grammar, then a semicolon is automatically inserted before the offending token if one or more of the following conditions is true:</p>
+          <ul>
+            <li>
+              The offending token is separated from the previous token by at least one |LineTerminator|.
+            </li>
+            <li>
+              The offending token is `}`.
+            </li>
+            <li>
+              The previous token is `)` and the inserted semicolon would then be parsed as the terminating semicolon of a do-while statement (<emu-xref href="#sec-do-while-statement"></emu-xref>).
+            </li>
+          </ul>
+        </li>
+        <li>
+          When, as the source text is parsed from left to right, the end of the input stream of tokens is encountered and the parser is unable to parse the input token stream as a single instance of the goal nonterminal, then a semicolon is automatically inserted at the end of the input stream.
+        </li>
+        <li>
+          When, as the source text is parsed from left to right, a token is encountered that is allowed by some production of the grammar, but the production is a <em>restricted production</em> and the token would be the first token for a terminal or nonterminal immediately following the annotation “[no |LineTerminator| here]” within the restricted production (and therefore such a token is called a restricted token), and the restricted token is separated from the previous token by at least one |LineTerminator|, then a semicolon is automatically inserted before the restricted token.
+        </li>
+      </ol>
+      <p>However, there is an additional overriding condition on the preceding rules: a semicolon is never inserted automatically if the semicolon would then be parsed as an empty statement or if that semicolon would become one of the two semicolons in the header of a `for` statement (see <emu-xref href="#sec-for-statement"></emu-xref>).</p>
+      <emu-note>
+        <p>The following are the only restricted productions in the grammar:</p>
+        <emu-grammar>
+          UpdateExpression[Yield, Await] :
+            LeftHandSideExpression[?Yield, ?Await] [no LineTerminator here] `++`
+            LeftHandSideExpression[?Yield, ?Await] [no LineTerminator here] `--`
+
+          ContinueStatement[Yield, Await] :
+            `continue` `;`
+            `continue` [no LineTerminator here] LabelIdentifier[?Yield, ?Await] `;`
+
+          BreakStatement[Yield, Await] :
+            `break` `;`
+            `break` [no LineTerminator here] LabelIdentifier[?Yield, ?Await] `;`
+
+          ReturnStatement[Yield, Await] :
+            `return` `;`
+            `return` [no LineTerminator here] Expression[+In, ?Yield, ?Await] `;`
+
+          ThrowStatement[Yield, Await] :
+            `throw` [no LineTerminator here] Expression[+In, ?Yield, ?Await] `;`
+
+          YieldExpression[In, Await] :
+            `yield`
+            `yield` [no LineTerminator here] AssignmentExpression[?In, +Yield, ?Await]
+            `yield` [no LineTerminator here] `*` AssignmentExpression[?In, +Yield, ?Await]
+
+          ArrowFunction[In, Yield, Await] :
+            ArrowParameters[?Yield, ?Await] [no LineTerminator here] `=>` ConciseBody[?In]
+
+          AsyncFunctionDeclaration[Yield, Await, Default] :
+            `async` [no LineTerminator here] `function` BindingIdentifier[?Yield, ?Await] `(` FormalParameters[~Yield, +Await] `)` `{` AsyncFunctionBody `}`
+            [+Default] `async` [no LineTerminator here] `function` `(` FormalParameters[~Yield, +Await] `)` `{` AsyncFunctionBody `}`
+
+          AsyncFunctionExpression :
+            `async` [no LineTerminator here] `function` BindingIdentifier[~Yield, +Await]? `(` FormalParameters[~Yield, +Await] `)` `{` AsyncFunctionBody `}`
+
+          AsyncMethod[Yield, Await] :
+            `async` [no LineTerminator here] ClassElementName[?Yield, ?Await] `(` UniqueFormalParameters[~Yield, +Await] `)` `{` AsyncFunctionBody `}`
+
+          AsyncGeneratorDeclaration[Yield, Await, Default] :
+            `async` [no LineTerminator here] `function` `*` BindingIdentifier[?Yield, ?Await] `(` FormalParameters[+Yield, +Await] `)` `{` AsyncGeneratorBody `}`
+            [+Default] `async` [no LineTerminator here] `function` `*` `(` FormalParameters[+Yield, +Await] `)` `{` AsyncGeneratorBody `}`
+
+          AsyncGeneratorExpression :
+            `async` [no LineTerminator here] `function` `*` BindingIdentifier[+Yield, +Await]? `(` FormalParameters[+Yield, +Await] `)` `{` AsyncGeneratorBody `}`
+
+          AsyncGeneratorMethod[Yield, Await] :
+            `async` [no LineTerminator here] `*` ClassElementName[?Yield, ?Await] `(` UniqueFormalParameters[+Yield, +Await] `)` `{` AsyncGeneratorBody `}`
+
+          AsyncArrowFunction[In, Yield, Await] :
+            <del>`async` [no LineTerminator here] AsyncArrowBindingIdentifier[?Yield] [no LineTerminator here] `=>` AsyncConciseBody[?In]</del>
+            <ins>CoverAsyncUsingDeclarationAndAsyncArrowIdentifierHead[?Yield, ?Await] [no LineTerminator here] `=>` AsyncConciseBody[?In] #callcover</ins>
+            CoverCallExpressionAndAsyncArrowHead[?Yield, ?Await] [no LineTerminator here] `=>` AsyncConciseBody[?In] #callcover
+
+          AsyncArrowHead :
+            `async` [no LineTerminator here] ArrowFormalParameters[~Yield, +Await]
+        </emu-grammar>
+        <p>The practical effect of these restricted productions is as follows:</p>
+        <ul>
+          <li>
+            When a `++` or `--` token is encountered where the parser would treat it as a postfix operator, and at least one |LineTerminator| occurred between the preceding token and the `++` or `--` token, then a semicolon is automatically inserted before the `++` or `--` token.
+          </li>
+          <li>
+            When a `continue`, `break`, `return`, `throw`, or `yield` token is encountered and a |LineTerminator| is encountered before the next token, a semicolon is automatically inserted after the `continue`, `break`, `return`, `throw`, or `yield` token.
+          </li>
+          <li>
+            When arrow function parameter(s) are followed by a |LineTerminator| before a `=>` token, a semicolon is automatically inserted and the punctuator causes a syntax error.
+          </li>
+          <li>
+            When an `async` token is followed by a |LineTerminator| before a `function` or |IdentifierName| or `(` token, a semicolon is automatically inserted and the `async` token is not treated as part of the same expression or class element as the following tokens.
+          </li>
+          <li>
+            When an `async` token is followed by a |LineTerminator| before a `*` token, a semicolon is automatically inserted and the punctuator causes a syntax error.
+          </li>
+        </ul>
+        <p>The resulting practical advice to ECMAScript programmers is:</p>
+        <ul>
+          <li>
+            A postfix `++` or `--` operator should be on the same line as its operand.
+          </li>
+          <li>
+            An |Expression| in a `return` or `throw` statement or an |AssignmentExpression| in a `yield` expression should start on the same line as the `return`, `throw`, or `yield` token.
+          </li>
+          <li>
+            A |LabelIdentifier| in a `break` or `continue` statement should be on the same line as the `break` or `continue` token.
+          </li>
+          <li>
+            The end of an arrow function's parameter(s) and its `=>` should be on the same line.
+          </li>
+          <li>
+            The `async` token preceding an asynchronous function or method should be on the same line as the immediately following token.
+          </li>
+        </ul>
+      </emu-note>
+    </emu-clause>
+  </emu-clause>
+</emu-clause>
+
 <emu-clause id="sec-ecmascript-language-statements-and-declarations">
   <h1>ECMAScript Language: Statements and Declarations</h1>
 
@@ -2179,7 +2583,7 @@ contributors: Ron Buckton, Ecma International
       <h2>Syntax</h2>
       <emu-grammar type="definition">
         LexicalDeclaration[In, Yield, Await] :
-          LetOrConst BindingList[?In, ?Yield, ?Await, <ins>~Using</ins>] `;`
+          LetOrConst BindingList[?In, ?Yield, ?Await, <ins>+Pattern</ins>] `;`
           <ins>UsingDeclaration[?In, ?Yield, ?Await]</ins>
 
         LetOrConst :
@@ -2188,27 +2592,45 @@ contributors: Ron Buckton, Ecma International
 
         <ins>
         UsingDeclaration[In, Yield, Await] :
-          `using` [no LineTerminator here] [lookahead != `await`] BindingList[?In, ?Yield, ?Await, +Using] `;`
-          [+Await] `using` [no LineTerminator here] `await` [no LineTerminator here] BindingList[?In, ?Yield, +Await, +Using] `;`
+          `using` [no LineTerminator here] [lookahead != `await`] BindingList[?In, ?Yield, ?Await, ~Pattern] `;`
+          [+Await] CoverAsyncUsingDeclarationAndAsyncArrowIdentifierHead[?Yield, +Await]
         </ins>
 
-        BindingList[In, Yield, Await, <ins>Using</ins>] :
-          LexicalBinding[?In, ?Yield, ?Await, <ins>?Using</ins>]
-          BindingList[?In, ?Yield, ?Await, <ins>?Using</ins>] `,` LexicalBinding[?In, ?Yield, ?Await, <ins>?Using</ins>]
+        BindingList[In, Yield, Await, <ins>Pattern</ins>] :
+          LexicalBinding[?In, ?Yield, ?Await, <ins>?Pattern</ins>]
+          BindingList[?In, ?Yield, ?Await, <ins>?Pattern</ins>] `,` LexicalBinding[?In, ?Yield, ?Await, <ins>?Pattern</ins>]
 
-        LexicalBinding[In, Yield, Await, <ins>Using</ins>] :
+        LexicalBinding[In, Yield, Await, <ins>Pattern</ins>] :
           BindingIdentifier[?Yield, ?Await] Initializer[?In, ?Yield, ?Await]?
           <del>BindingPattern[?Yield, ?Await] Initializer[?In, ?Yield, ?Await]</del>
-          <ins>[~Using] BindingPattern[?Yield, ?Await] Initializer[?In, ?Yield, ?Await]</ins>
+          <ins>[+Pattern] BindingPattern[?Yield, ?Await] Initializer[?In, ?Yield, ?Await]</ins>
       </emu-grammar>
+
+      <ins class="block">
+      <h2>Supplemental Syntax</h2>
+      <p>
+        When processing an instance of the production<br>
+        <emu-grammar>UsingDeclaration : CoverAsyncUsingDeclarationAndAsyncArrowIdentifierHead</emu-grammar><br>
+        the interpretation of |CoverAsyncUsingDeclarationAndAsyncArrowIdentifierHead| is refined using the following grammar:
+      </p>
+
+      <emu-grammar type="definition">
+        AsyncUsingDeclaration[Yield] :
+          `async` [no LineTerminator here] `using` [no LineTerminator here] BindingList[+In, ?Yield, +Await, ~Pattern] `;`
+      </emu-grammar>
+      </ins>
 
       <emu-clause id="sec-let-and-const-declarations-static-semantics-early-errors">
         <h1>Static Semantics: Early Errors</h1>
         <ins class="block">
         <emu-grammar>
-          UsingDeclaration :
-            `using` BindingList `;`
-            `using` `await` BindingList `;`
+          UsingDeclaration : CoverAsyncUsingDeclarationAndAsyncArrowIdentifierHead
+        </emu-grammar>
+        <ul>
+          <li>|CoverAsyncUsingDeclarationAndAsyncArrowIdentifierHead| must cover an |AsyncUsingDeclaration|.</li>
+        </ul>
+        <emu-grammar>
+          UsingDeclaration : `using` BindingList `;`
         </emu-grammar>
         <ul>
           <li>
@@ -2222,6 +2644,23 @@ contributors: Ron Buckton, Ecma International
           </li>
           <li>
             It is a Syntax Error if the goal symbol is |Script| and |UsingDeclaration| is not contained, either directly or indirectly, within a |Block|, |CaseBlock|, |ForStatement|, |ForInOfStatement|, |FunctionBody|, |GeneratorBody|, |AsyncGeneratorBody|, |AsyncFunctionBody|, |ClassStaticBlockBody|, or |ClassBody|.
+          </li>
+        </ul>
+        <emu-grammar>
+          AsyncUsingDeclaration : `async` `using` BindingList `;`
+        </emu-grammar>
+        <ul>
+          <li>
+            It is a Syntax Error if the BoundNames of |BindingList| contains *"let"*.
+          </li>
+          <li>
+            It is a Syntax Error if the BoundNames of |BindingList| contains *"await"*.
+          </li>
+          <li>
+            It is a Syntax Error if the BoundNames of |BindingList| contains any duplicate entries.
+          </li>
+          <li>
+            It is a Syntax Error if the goal symbol is |Script| and |AsyncUsingDeclaration| is not contained, either directly or indirectly, within a |Block|, |CaseBlock|, |ForStatement|, |ForInOfStatement|, |FunctionBody|, |GeneratorBody|, |AsyncGeneratorBody|, |AsyncFunctionBody|, |ClassStaticBlockBody|, or |ClassBody|.
           </li>
         </ul>
         <emu-note>
@@ -2253,7 +2692,7 @@ contributors: Ron Buckton, Ecma International
           1. Return ~empty~.
         </emu-alg>
 
-        <emu-grammar>UsingDeclaration : `using` `await` BindingList `;`</emu-grammar>
+        <emu-grammar>AsyncUsingDeclaration : `async` `using` BindingList `;`</emu-grammar>
         <emu-alg>
           1. Perform ? BindingEvaluation of |BindingList| with parameter ~async-dispose~.
           1. Return ~empty~.
@@ -2474,24 +2913,24 @@ contributors: Ron Buckton, Ecma International
       <emu-grammar type="definition">
         ForInOfStatement[Yield, Await, Return] :
           `for` `(` [lookahead != `let` `[`] LeftHandSideExpression[?Yield, ?Await] `in` Expression[+In, ?Yield, ?Await] `)` Statement[?Yield, ?Await, ?Return]
-          `for` `(` `var` ForBinding[?Yield, ?Await, <ins>~Using</ins>] `in` Expression[+In, ?Yield, ?Await] `)` Statement[?Yield, ?Await, ?Return]
+          `for` `(` `var` ForBinding[?Yield, ?Await, <ins>+Pattern</ins>] `in` Expression[+In, ?Yield, ?Await] `)` Statement[?Yield, ?Await, ?Return]
           `for` `(` ForDeclaration[?Yield, ?Await, <ins>~Using</ins>] `in` Expression[+In, ?Yield, ?Await] `)` Statement[?Yield, ?Await, ?Return]
           `for` `(` [lookahead &notin; {`let`, `async` `of`}] LeftHandSideExpression[?Yield, ?Await] `of` AssignmentExpression[+In, ?Yield, ?Await] `)` Statement[?Yield, ?Await, ?Return]
-          `for` `(` `var` ForBinding[?Yield, ?Await, <ins>~Using</ins>] `of` AssignmentExpression[+In, ?Yield, ?Await] `)` Statement[?Yield, ?Await, ?Return]
+          `for` `(` `var` ForBinding[?Yield, ?Await, <ins>+Pattern</ins>] `of` AssignmentExpression[+In, ?Yield, ?Await] `)` Statement[?Yield, ?Await, ?Return]
           `for` `(` <ins>[lookahead != `using` `of`]</ins> ForDeclaration[?Yield, ?Await, <ins>+Using</ins>] `of` AssignmentExpression[+In, ?Yield, ?Await] `)` Statement[?Yield, ?Await, ?Return]
           [+Await] `for` `await` `(` [lookahead != `let`] LeftHandSideExpression[?Yield, ?Await] `of` AssignmentExpression[+In, ?Yield, ?Await] `)` Statement[?Yield, ?Await, ?Return]
-          [+Await] `for` `await` `(` `var` ForBinding[?Yield, ?Await, <ins>~Using</ins>] `of` AssignmentExpression[+In, ?Yield, ?Await] `)` Statement[?Yield, ?Await, ?Return]
+          [+Await] `for` `await` `(` `var` ForBinding[?Yield, ?Await, <ins>+Pattern</ins>] `of` AssignmentExpression[+In, ?Yield, ?Await] `)` Statement[?Yield, ?Await, ?Return]
           [+Await] `for` `await` `(` <ins>[lookahead != `using` `of`]</ins> ForDeclaration[?Yield, ?Await, <ins>+Using</ins>] `of` AssignmentExpression[+In, ?Yield, ?Await] `)` Statement[?Yield, ?Await, ?Return]
 
         ForDeclaration[Yield, Await, <ins>Using</ins>] :
-          LetOrConst ForBinding[?Yield, ?Await, <ins>~Using</ins>]
-          <ins>[+Using] `using` [no LineTerminator here] [lookahead != `await`] ForBinding[?Yield, ?Await, +Using]</ins>
-          <ins>[+Using, +Await] `using` [no LineTerminator here] `await` [no LineTerminator here] ForBinding[?Yield, +Await, +Using]</ins>
+          LetOrConst ForBinding[?Yield, ?Await, <ins>+Pattern</ins>]
+          <ins>[+Using] `using` [no LineTerminator here] [lookahead != `await`] ForBinding[?Yield, ?Await, ~Pattern]</ins>
+          <ins>[+Using, +Await] `async` [no LineTerminator here] [lookahead != `using` `of`] `using` [no LineTerminator here] ForBinding[?Yield, +Await, ~Pattern]</ins>
 
-        ForBinding[Yield, Await, <ins>Using</ins>] :
+        ForBinding[Yield, Await, <ins>Pattern</ins>] :
           BindingIdentifier[?Yield, ?Await]
           <del>BindingPattern[?Yield, ?Await]</del>
-          <ins>[~Using] BindingPattern[?Yield, ?Await]</ins>
+          <ins>[+Pattern] BindingPattern[?Yield, ?Await]</ins>
       </emu-grammar>
 
       <emu-clause id="sec-runtime-semantics-fordeclarationbindinginstantiation" oldids="sec-runtime-semantics-bindinginstantiation" type="sdo">
@@ -2515,7 +2954,7 @@ contributors: Ron Buckton, Ecma International
         <emu-grammar>
           ForDeclaration :
             `using` ForBinding
-            `using` `await` ForBinding
+            `async` `using` ForBinding
         </emu-grammar>
         <emu-alg>
           1. Assert: _environment_ is a declarative Environment Record.
@@ -2543,7 +2982,7 @@ contributors: Ron Buckton, Ecma International
           1. If _iteratorKind_ is not present, set _iteratorKind_ to ~sync~.
           1. Let _oldEnv_ be the running execution context's LexicalEnvironment.
           1. Let _V_ be *undefined*.
-          1. <ins>If IsUsingAwaitDeclaration of _lhs_ is *true*, then</ins>
+          1. <ins>If IsAsyncUsingDeclaration of _lhs_ is *true*, then</ins>
             1. <ins>Let _hint_ be ~async-dispose~.</ins>
           1. <ins>Else, if IsUsingDeclaration of _lhs_ is *true*, then</ins>
             1. <ins>Let _hint_ be ~sync-dispose~.</ins>
@@ -2650,6 +3089,85 @@ contributors: Ron Buckton, Ecma International
 
 <emu-clause id="sec-ecmascript-language-functions-and-classes">
   <h1>ECMAScript Language: Functions and Classes</h1>
+
+  <emu-clause id="sec-parameter-lists">
+    <h1>Parameter Lists</h1>
+    <emu-clause id="sec-static-semantics-issimpleparameterlist" oldids="sec-destructuring-binding-patterns-static-semantics-issimpleparameterlist,sec-function-definitions-static-semantics-issimpleparameterlist,sec-arrow-function-definitions-static-semantics-issimpleparameterlist,sec-async-arrow-function-definitions-static-semantics-IsSimpleParameterList" type="sdo">
+      <h1>Static Semantics: IsSimpleParameterList ( ): a Boolean</h1>
+      <dl class="header">
+      </dl>
+      <emu-grammar>BindingElement : BindingPattern</emu-grammar>
+      <emu-alg>
+        1. Return *false*.
+      </emu-alg>
+      <emu-grammar>BindingElement : BindingPattern Initializer</emu-grammar>
+      <emu-alg>
+        1. Return *false*.
+      </emu-alg>
+      <emu-grammar>SingleNameBinding : BindingIdentifier</emu-grammar>
+      <emu-alg>
+        1. Return *true*.
+      </emu-alg>
+      <emu-grammar>SingleNameBinding : BindingIdentifier Initializer</emu-grammar>
+      <emu-alg>
+        1. Return *false*.
+      </emu-alg>
+      <emu-grammar>FormalParameters : [empty]</emu-grammar>
+      <emu-alg>
+        1. Return *true*.
+      </emu-alg>
+      <emu-grammar>FormalParameters : FunctionRestParameter</emu-grammar>
+      <emu-alg>
+        1. Return *false*.
+      </emu-alg>
+      <emu-grammar>FormalParameters : FormalParameterList `,` FunctionRestParameter</emu-grammar>
+      <emu-alg>
+        1. Return *false*.
+      </emu-alg>
+      <emu-grammar>FormalParameterList : FormalParameterList `,` FormalParameter</emu-grammar>
+      <emu-alg>
+        1. If IsSimpleParameterList of |FormalParameterList| is *false*, return *false*.
+        1. Return IsSimpleParameterList of |FormalParameter|.
+      </emu-alg>
+      <emu-grammar>FormalParameter : BindingElement</emu-grammar>
+      <emu-alg>
+        1. Return IsSimpleParameterList of |BindingElement|.
+      </emu-alg>
+      <emu-grammar>ArrowParameters : BindingIdentifier</emu-grammar>
+      <emu-alg>
+        1. Return *true*.
+      </emu-alg>
+      <emu-grammar>ArrowParameters : CoverParenthesizedExpressionAndArrowParameterList</emu-grammar>
+      <emu-alg>
+        1. Let _formals_ be the |ArrowFormalParameters| that is covered by |CoverParenthesizedExpressionAndArrowParameterList|.
+        1. Return IsSimpleParameterList of _formals_.
+      </emu-alg>
+      <emu-grammar>
+        AsyncArrowBindingIdentifier : BindingIdentifier
+      </emu-grammar>
+      <emu-alg>
+        1. Return *true*.
+      </emu-alg>
+      <ins class="block">
+      <emu-grammar>
+        CoverAsyncUsingDeclarationAndAsyncArrowIdentifierHead :
+          `async` AsyncArrowBindingIdentifier
+          `async` AsyncArrowBindingIdentifier BindingList
+      </emu-grammar>
+      <emu-alg>
+        1. Let _head_ be the |AsyncArrowIdentifierHead| that is covered by |CoverAsyncUsingDeclarationAndAsyncArrowIdentifierHead|.
+        1. Return IsSimpleParameterList of _head_.
+      </emu-alg>
+      </ins>
+      <emu-grammar>
+        CoverCallExpressionAndAsyncArrowHead : MemberExpression Arguments
+      </emu-grammar>
+      <emu-alg>
+        1. Let _head_ be the |AsyncArrowHead| that is covered by |CoverCallExpressionAndAsyncArrowHead|.
+        1. Return IsSimpleParameterList of _head_.
+      </emu-alg>
+    </emu-clause>
+  </emu-clause>
 
   <emu-clause id="sec-function-definitions">
     <h1>Function Definitions</h1>
@@ -3001,6 +3519,142 @@ contributors: Ron Buckton, Ecma International
       <emu-note>
         <p>The |BindingIdentifier| in an |AsyncFunctionExpression| can be referenced from inside the |AsyncFunctionExpression|'s |AsyncFunctionBody| to allow the function to call itself recursively. However, unlike in a |FunctionDeclaration|, the |BindingIdentifier| in a |AsyncFunctionExpression| cannot be referenced from and does not affect the scope enclosing the |AsyncFunctionExpression|.</p>
       </emu-note>
+    </emu-clause>
+  </emu-clause>
+
+  <emu-clause id="sec-async-arrow-function-definitions">
+    <h1>Async Arrow Function Definitions</h1>
+    <h2>Syntax</h2>
+    <emu-grammar type="definition">
+      AsyncArrowFunction[In, Yield, Await] :
+        <del>`async` [no LineTerminator here] AsyncArrowBindingIdentifier[?Yield] [no LineTerminator here] `=>` AsyncConciseBody[?In]</del>
+        <ins>CoverAsyncUsingDeclarationAndAsyncArrowIdentifierHead[?Yield, ?Await] [no LineTerminator here] `=>` AsyncConciseBody[?In]</ins>
+        CoverCallExpressionAndAsyncArrowHead[?Yield, ?Await] [no LineTerminator here] `=>` AsyncConciseBody[?In] #callcover
+
+      AsyncConciseBody[In] :
+        [lookahead != `{`] ExpressionBody[?In, +Await]
+        `{` AsyncFunctionBody `}`
+
+      AsyncArrowBindingIdentifier[Yield] :
+        BindingIdentifier[?Yield, +Await]
+
+      <ins class="block">
+      CoverAsyncUsingDeclarationAndAsyncArrowIdentifierHead[Yield, Await] :
+        `async` [no LineTerminator here] AsyncArrowBindingIdentifier[?Yield]
+        [+Await] `async` [no LineTerminator here] AsyncArrowBindingIdentifier[?Yield] [no LineTerminator here] BindingList[+In, ?Yield, +Await] `;`
+      </ins>
+
+      CoverCallExpressionAndAsyncArrowHead[Yield, Await] :
+        MemberExpression[?Yield, ?Await] Arguments[?Yield, ?Await]
+    </emu-grammar>
+    <h2>Supplemental Syntax</h2>
+
+    <ins class="block">
+    <p>
+      When processing an instance of the production<br>
+      <emu-grammar>AsyncArrowFunction : CoverAsyncUsingDeclarationAndAsyncArrowIdentifierHead `=>` AsyncConciseBody</emu-grammar><br>
+      the interpretation of |CoverAsyncUsingDeclarationAndAsyncArrowIdentifierHead| is refined using the following grammar:
+    </p>
+
+    <emu-grammar type="definition">
+      AsyncArrowIdentifierHead :
+        `async` [no LineTerminator here] AsyncArrowBindingIdentifier[~Yield]
+    </emu-grammar>
+    </ins>
+
+    <p>
+      When processing an instance of the production<br>
+      <emu-grammar>AsyncArrowFunction : CoverCallExpressionAndAsyncArrowHead `=>` AsyncConciseBody</emu-grammar><br>
+      the interpretation of |CoverCallExpressionAndAsyncArrowHead| is refined using the following grammar:
+    </p>
+
+    <emu-grammar type="definition">
+      AsyncArrowHead :
+        `async` [no LineTerminator here] ArrowFormalParameters[~Yield, +Await]
+    </emu-grammar>
+
+    <emu-clause id="sec-async-arrow-function-definitions-static-semantics-early-errors">
+      <h1>Static Semantics: Early Errors</h1>
+      <del class="block">
+      <emu-grammar>
+        AsyncArrowFunction : `async` AsyncArrowBindingIdentifier `=>` AsyncConciseBody
+      </emu-grammar>
+      <ul>
+        <li>It is a Syntax Error if any element of the BoundNames of |AsyncArrowBindingIdentifier| also occurs in the LexicallyDeclaredNames of |AsyncConciseBody|.</li>
+      </ul>
+      </del>
+      <ins class="block">
+      <emu-grammar>
+        AsyncArrowFunction : CoverAsyncUsingDeclarationAndAsyncArrowIdentifierHead `=>` AsyncConciseBody
+      </emu-grammar>
+      <ul>
+        <li>|CoverAsyncUsingDeclarationAndAsyncArrowIdentifierHead| must cover an |AsyncArrowIdentifierHead|.</li>
+        <li>It is a Syntax Error if any element of the BoundNames of |CoverAsyncUsingDeclarationAndAsyncArrowIdentifierHead| also occurs in the LexicallyDeclaredNames of |AsyncConciseBody|.</li>
+      </ul>
+      </ins>
+      <emu-grammar>
+        AsyncArrowFunction : CoverCallExpressionAndAsyncArrowHead `=>` AsyncConciseBody
+      </emu-grammar>
+      <ul>
+        <li>|CoverCallExpressionAndAsyncArrowHead| must cover an |AsyncArrowHead|.</li>
+        <li>It is a Syntax Error if |CoverCallExpressionAndAsyncArrowHead| Contains |YieldExpression| is *true*.</li>
+        <li>It is a Syntax Error if |CoverCallExpressionAndAsyncArrowHead| Contains |AwaitExpression| is *true*.</li>
+        <li>It is a Syntax Error if any element of the BoundNames of |CoverCallExpressionAndAsyncArrowHead| also occurs in the LexicallyDeclaredNames of |AsyncConciseBody|.</li>
+        <li>It is a Syntax Error if AsyncConciseBodyContainsUseStrict of |AsyncConciseBody| is *true* and IsSimpleParameterList of |CoverCallExpressionAndAsyncArrowHead| is *false*.</li>
+      </ul>
+    </emu-clause>
+
+    <emu-clause id="sec-runtime-semantics-instantiateasyncarrowfunctionexpression" type="sdo">
+      <h1>
+        Runtime Semantics: InstantiateAsyncArrowFunctionExpression (
+          optional _name_: a property key or a Private Name,
+        ): a function object
+      </h1>
+      <dl class="header">
+      </dl>
+      <emu-grammar>
+        <del>AsyncArrowFunction : `async` AsyncArrowBindingIdentifier `=>` AsyncConciseBody</del>
+        <ins>AsyncArrowFunction : CoverAsyncUsingDeclarationAndAsyncArrowIdentifierHead `=>` AsyncConciseBody</ins>
+      </emu-grammar>
+      <emu-alg>
+        1. If _name_ is not present, set _name_ to *""*.
+        1. Let _env_ be the LexicalEnvironment of the running execution context.
+        1. Let _privateEnv_ be the running execution context's PrivateEnvironment.
+        1. Let _sourceText_ be the source text matched by |AsyncArrowFunction|.
+        1. <del>Let _parameters_ be |AsyncArrowBindingIdentifier|.</del>
+        1. <ins>Let _head_ be the |AsyncArrowIdentifierHead| that is covered by |CoverAsyncUsingDeclarationAndAsyncArrowIdentifierHead|.</ins>
+        1. <ins>Let _parameters_ be the |AsyncArrowBindingIdentifier| of _head_.</ins>
+        1. Let _closure_ be OrdinaryFunctionCreate(%AsyncFunction.prototype%, _sourceText_, _parameters_, |AsyncConciseBody|, ~lexical-this~, _env_, _privateEnv_).
+        1. Perform SetFunctionName(_closure_, _name_).
+        1. Return _closure_.
+      </emu-alg>
+      <emu-grammar>
+        AsyncArrowFunction : CoverCallExpressionAndAsyncArrowHead `=>` AsyncConciseBody
+      </emu-grammar>
+      <emu-alg>
+        1. If _name_ is not present, set _name_ to *""*.
+        1. Let _env_ be the LexicalEnvironment of the running execution context.
+        1. Let _privateEnv_ be the running execution context's PrivateEnvironment.
+        1. Let _sourceText_ be the source text matched by |AsyncArrowFunction|.
+        1. Let _head_ be the |AsyncArrowHead| that is covered by |CoverCallExpressionAndAsyncArrowHead|.
+        1. Let _parameters_ be the |ArrowFormalParameters| of _head_.
+        1. Let _closure_ be OrdinaryFunctionCreate(%AsyncFunction.prototype%, _sourceText_, _parameters_, |AsyncConciseBody|, ~lexical-this~, _env_, _privateEnv_).
+        1. Perform SetFunctionName(_closure_, _name_).
+        1. Return _closure_.
+      </emu-alg>
+    </emu-clause>
+
+    <emu-clause id="sec-async-arrow-function-definitions-runtime-semantics-evaluation" type="sdo">
+      <h1>Runtime Semantics: Evaluation</h1>
+      <emu-grammar>
+        AsyncArrowFunction :
+          <del>`async` AsyncArrowBindingIdentifier `=>` AsyncConciseBody</del>
+          <ins>CoverAsyncUsingDeclarationAndAsyncArrowIdentifierHead `=>` AsyncConciseBody</ins>
+          CoverCallExpressionAndAsyncArrowHead `=>` AsyncConciseBody
+      </emu-grammar>
+      <emu-alg>
+        1. Return InstantiateAsyncArrowFunctionExpression of |AsyncArrowFunction|.
+      </emu-alg>
     </emu-clause>
   </emu-clause>
 
