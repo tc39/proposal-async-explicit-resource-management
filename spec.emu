@@ -2464,7 +2464,7 @@ contributors: Ron Buckton, Ecma International
     <h2>Supplemental Syntax</h2>
     <p>
       When processing an instance of the production<br>
-      <emu-grammar>UnaryExpression[Yield, Await] : [+Await] CoverAwaitExpressionAndAwaitUsingDeclarationHead[?Yield]</emu-grammar><br>
+      <emu-grammar>UnaryExpression : CoverAwaitExpressionAndAwaitUsingDeclarationHead</emu-grammar><br>
       the interpretation of |CoverAwaitExpressionAndAwaitUsingDeclarationHead| is refined using the following grammar:
     </p>
     <emu-grammar>
@@ -2572,7 +2572,7 @@ contributors: Ron Buckton, Ecma International
       <h2>Supplemental Syntax</h2>
       <p>
         When processing an instance of the production<br>
-        <emu-grammar>AwaitUsingDeclaration[In, Yield] : CoverAwaitExpressionAndAwaitUsingDeclarationHead[?Yield] [no LineTerminator here] [lookahead != `await`] BindingList[?In, ?Yield, ?Await, ~Pattern] `;`</emu-grammar><br>
+        <emu-grammar>AwaitUsingDeclaration : CoverAwaitExpressionAndAwaitUsingDeclarationHead BindingList `;`</emu-grammar><br>
         the interpretation of |CoverAwaitExpressionAndAwaitUsingDeclarationHead| is refined using the following grammar:
       </p>
       <emu-grammar type="definition">
