@@ -2567,7 +2567,7 @@ contributors: Ron Buckton, Ecma International
         LexicalDeclaration[In, Yield, Await] :
           LetOrConst BindingList[?In, ?Yield, ?Await, <ins>+Pattern</ins>] `;`
           <ins>UsingDeclaration[?In, ?Yield, ?Await]</ins>
-          <ins>[+Await] CoverAwaitExpressionAndAwaitUsingDeclaration[?Yield]</ins>
+          <ins>[+Await] CoverAwaitExpressionAndAwaitUsingDeclaration[?In, ?Yield]</ins>
 
         LetOrConst :
           `let`
