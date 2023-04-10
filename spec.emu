@@ -2552,10 +2552,10 @@ contributors: Ron Buckton, Ecma International
 
         <ins class="block">
         UsingDeclaration[In, Yield, Await] :
-          `using` [no LineTerminator here] [lookahead != `await`] BindingList[?In, ?Yield, ?Await, ~Pattern] `;`
+          `using` [no LineTerminator here] BindingList[?In, ?Yield, ?Await, ~Pattern] `;`
 
         AwaitUsingDeclaration[In, Yield] :
-          CoverAwaitExpressionAndAwaitUsingDeclarationHead[?Yield] [no LineTerminator here] [lookahead != `await`] BindingList[?In, ?Yield, ?Await, ~Pattern] `;`
+          CoverAwaitExpressionAndAwaitUsingDeclarationHead[?Yield] [no LineTerminator here] BindingList[?In, ?Yield, ?Await, ~Pattern] `;`
         </ins>
 
         BindingList[In, Yield, Await, <ins>Pattern</ins>] :
@@ -2610,9 +2610,6 @@ contributors: Ron Buckton, Ecma International
           <li>|CoverAwaitExpressionAndAwaitUsingDeclarationHead| must cover an |AwaitUsingDeclarationHead|.</li>
           <li>
             It is a Syntax Error if the BoundNames of |BindingList| contains *"let"*.
-          </li>
-          <li>
-            It is a Syntax Error if the BoundNames of |BindingList| contains *"await"*.
           </li>
           <li>
             It is a Syntax Error if the BoundNames of |BindingList| contains any duplicate entries.
@@ -2879,7 +2876,7 @@ contributors: Ron Buckton, Ecma International
 
         ForDeclaration[Yield, Await, <ins>Using</ins>] :
           LetOrConst ForBinding[?Yield, ?Await, <ins>+Pattern</ins>]
-          <ins>[+Using] `using` [no LineTerminator here] [lookahead != `await`] ForBinding[?Yield, ?Await, ~Pattern]</ins>
+          <ins>[+Using] `using` [no LineTerminator here] ForBinding[?Yield, ?Await, ~Pattern]</ins>
           <ins>[+Using, +Await] `await` [no LineTerminator here] `using` [no LineTerminator here] ForBinding[?Yield, +Await, ~Pattern]</ins>
 
         ForBinding[Yield, Await, <ins>Pattern</ins>] :
