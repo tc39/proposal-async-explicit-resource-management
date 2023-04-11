@@ -28,7 +28,7 @@
 <pre class="metadata">
 title: ECMAScript Async Explicit Resource Management
 status: proposal
-stage: 2
+stage: 3
 contributors: Ron Buckton, Ecma International
 </pre>
 

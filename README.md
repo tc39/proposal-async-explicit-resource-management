@@ -57,10 +57,11 @@ with managing multiple resources:
 
 ## Status
 
-**Stage:** 2  \
+**Stage:** 3  \
 **Champion:** Ron Buckton (@rbuckton)  \
-**Last Presented:** November/December, 2022 ([slides](https://1drv.ms/p/s!AjgWTO11Fk-TkoJoXa_RG_DaDAaoqA?e=A1aYah),
-notes TBA)
+**Last Presented:** March, 2023 ([slides](https://1drv.ms/p/s!AjgWTO11Fk-Tkodu1RydtKh2ZVafxA?e=yasS3Y),
+[notes #1](https://github.com/tc39/notes/blob/main/meetings/2023-03/mar-21.md#async-explicit-resource-management),
+[notes #2](https://github.com/tc39/notes/blob/main/meetings/2023-03/mar-23.md#async-explicit-resource-management-again))
 
 _For more information see the [TC39 proposal process](https://tc39.es/process-document/)._
 
@@ -983,10 +984,10 @@ The following is a high-level list of tasks to progress through each stage of th
 ### Stage 3 Entrance Criteria
 
 * [x] [Complete specification text][Specification].
-* [ ] Designated reviewers have signed off on the current spec text:
-  * [ ] [Waldemar Horwat][Stage3Reviewer1] has [signed off][Stage3Reviewer1SignOff]
-  * [ ] [Shu-yu Guo][Stage3Reviewer2] has [signed off][Stage3Reviewer2SignOff]
-* [ ] The [ECMAScript editor][Stage3Editor] has [signed off][Stage3EditorSignOff] on the current spec text.
+* [x] Designated reviewers have signed off on the current spec text:
+  * [x] [Waldemar Horwat][Stage3Reviewer1] has [signed off][Stage3Reviewer1SignOff]
+  * [x] Shu-yu Guo has signed off (NOTE: sign-off occured over Matrix)
+* [x] The [ECMAScript editor][Stage3Editor] has [signed off][Stage3EditorSignOff] on the current spec text.
 
 ### Stage 4 Entrance Criteria
 
@@ -1020,12 +1021,12 @@ The following is a high-level list of tasks to progress through each stage of th
 [API]: #api
 [Specification]: https://tc39.es/proposal-async-explicit-resource-management
 [Transpiler]: #todo
-[Stage3Reviewer1]: #todo
-[Stage3Reviewer1SignOff]: #todo
+[Stage3Reviewer1]: https://github.com/tc39/proposal-async-explicit-resource-management/pull/15
+[Stage3Reviewer1SignOff]: https://github.com/tc39/proposal-async-explicit-resource-management/pull/15#pullrequestreview-1378277626
 [Stage3Reviewer2]: #todo
 [Stage3Reviewer2SignOff]: #todo
-[Stage3Editor]: #todo
-[Stage3EditorSignOff]: #todo
+[Stage3Editor]: https://github.com/tc39/proposal-async-explicit-resource-management/issues/9
+[Stage3EditorSignOff]: https://github.com/tc39/proposal-async-explicit-resource-management/pull/10#pullrequestreview-1274348423
 [Test262PullRequest]: #todo
 [Implementation1]: #todo
 [Implementation2]: #todo
