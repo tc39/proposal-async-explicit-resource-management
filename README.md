@@ -1,5 +1,7 @@
 # ECMAScript Async Explicit Resource Management
 
+**ECMAScript Async Explicit Resource Management has been subsumed by the [ECMAScript Explicit Resource Management Proposal](https://github.com/tc39/proposal-explicit-resource-management). Further discussion should occur in that repository.**
+
 This proposal relates to async functionality deferred from the original
 [Explicit Resource Management][using] proposal and shares the
 same motivations:
